@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Downloaded upstream archives and extracted tables (multi-GB; re-fetch with `make`)
+data/raw/
+
+# Derived database: rebuildable from data/law in ~40s with `make db`.
+# Committed to git only if you explicitly want a queryable copy in the repo.
+data/leginfo.sqlite
+data/leginfo.sqlite-wal
+data/leginfo.sqlite-shm
+
+# Scratch
+probe_out/
+.DS_Store
