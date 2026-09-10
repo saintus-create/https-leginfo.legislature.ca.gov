@@ -18,6 +18,8 @@ from pathlib import Path
 
 from . import pipeline, store
 from .config import CODES, CODES_BY_ABBR, bulk_zip_url, session_start_year
+from .export_html import export_html
+from .export_markdown import export_markdown
 from .util import get_logger
 
 LOG = get_logger()
@@ -115,6 +117,24 @@ def cmd_import_law_bulk(args: argparse.Namespace) -> int:
     counts = pipeline.import_law_from_bulk(zip_path, data_dir / "leginfo.sqlite")
     for key, value in counts.items():
         print(f"{key:<20}{value if isinstance(value, str) else format(value, ','):>14}")
+    return 0
+
+
+def cmd_export_html(args: argparse.Namespace) -> int:
+    """Generate crawlable static HTML from the canonical law snapshots."""
+    data_dir = _data_dir(args)
+    stats = export_html(data_dir, args.output, base_url=args.base_url)
+    for key, value in stats.items():
+        print(f"{key:<20}{value:>14,}")
+    return 0
+
+
+def cmd_export_markdown(args: argparse.Namespace) -> int:
+    """Generate one clean Markdown document per law section for AutoRAG."""
+    data_dir = _data_dir(args)
+    stats = export_markdown(data_dir, args.output)
+    for key, value in stats.items():
+        print(f"{key:<20}{value:>14,}" if isinstance(value, int) else f"{key:<20}{value}")
     return 0
 
 
@@ -253,6 +273,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--session", type=int, default=session_start_year())
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=cmd_import_law_bulk)
+
+    p = sub.add_parser("export-html", help="generate crawlable static HTML from law snapshots")
+    p.add_argument("--output", default="dist", help="output directory (default: ./dist)")
+    p.add_argument("--base-url", default="", help="public site origin, e.g. https://laws.example.com")
+    p.set_defaults(func=cmd_export_html)
+
+    p = sub.add_parser("export-markdown", help="generate Markdown documents for AutoRAG")
+    p.add_argument("--output", default="autorag", help="output directory (default: ./autorag)")
+    p.set_defaults(func=cmd_export_markdown)
 
     p = sub.add_parser("stats", help="database row counts")
     p.set_defaults(func=cmd_stats)

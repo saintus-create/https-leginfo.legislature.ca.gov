@@ -16,6 +16,10 @@ data/leginfo.sqlite
 data/leginfo.sqlite-wal
 data/leginfo.sqlite-shm
 
+# Generated crawlable site: rebuild with `make html`.
+dist/
+autorag/
+
 # Scratch
 probe_out/
 .DS_Store

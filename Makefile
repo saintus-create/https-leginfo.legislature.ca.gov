@@ -9,7 +9,7 @@
 PYTHON ?= python3
 export PYTHONPATH := $(CURDIR)/src:$(PYTHONPATH)
 
-.PHONY: help law db bills verify test search clean
+.PHONY: help law db html md bills verify test search clean
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | sed 's/^/  make /'
@@ -19,6 +19,12 @@ law:
 
 db:
 	$(PYTHON) -m leginfo build-db
+
+html:
+	$(PYTHON) -m leginfo export-html
+
+md:
+	$(PYTHON) -m leginfo export-markdown
 
 bills:
 	$(PYTHON) -m leginfo import-bills

@@ -29,6 +29,23 @@ Bills are **not** in the committed snapshot — only because the sandbox this wa
 built in cannot reach `downloads.leginfo.legislature.ca.gov`. The importer is
 written and tested against the published schema; one command fills it in (below).
 
+### AutoRAG Markdown export
+
+To use this dataset with Cloudflare Workers AI AutoRAG / AI Search, generate the
+retrieval-ready Markdown corpus:
+
+```bash
+python3 -m leginfo export-markdown --output autorag
+```
+
+The export contains one clean Markdown document per law section, plus a manifest.
+Upload the individual `.md` objects to an R2 bucket and connect it as an **R2
+Bucket** data source. Markdown is directly supported by AutoRAG and each section
+is kept as a separate object for precise retrieval and to stay well below
+Cloudflare's 4 MB file limit. The canonical JSONL snapshot remains the source of
+truth; `autorag/` is ignored by Git because the full corpus is reproducible with
+`make md`.
+
 ## Quickstart
 
 ```bash
@@ -43,6 +60,9 @@ python3 -m leginfo search "public records act" --limit 5
 python3 -m leginfo section GOV 7921.000
 python3 -m leginfo stats
 python3 -m leginfo verify
+
+# 4. Generate Markdown documents for AutoRAG
+python3 -m leginfo export-markdown --output autorag
 ```
 
 No install step is required — the pipeline is standard-library Python 3.9+.
