@@ -11,9 +11,10 @@ const codes = [
   ['WIC','Welfare and Institutions Code'], ['CONS','California Constitution']
 ];
 const base = import.meta.env.BASE_URL;
+const dataBase = base.endsWith('/') ? base : `${base}/`;
 ---
 
-<div class="law-explorer" data-base={base}>
+<div class="law-explorer" data-base={dataBase}>
   <div class="law-toolbar">
     <label>Code
       <select data-code-select>
@@ -29,26 +30,37 @@ const base = import.meta.env.BASE_URL;
 </div>
 
 <script>
-  document.querySelectorAll('.law-explorer[data-base]').forEach((root) => {
-    const base = root.getAttribute('data-base') || '/';
-    const select = root.querySelector('[data-code-select]');
-    const query = root.querySelector('[data-law-query]');
-    const status = root.querySelector('[data-law-status]');
-    const results = root.querySelector('[data-law-results]');
-    let records = [];
+  interface LawRecord {
+    uid?: string;
+    kind?: string;
+    section?: string;
+    citation?: string;
+    text?: string;
+    path?: string;
+    history?: string;
+    repealed?: boolean;
+  }
 
-    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
+  document.querySelectorAll<HTMLElement>('.law-explorer[data-base]').forEach((root) => {
+    const base = root.getAttribute('data-base') || '/';
+    const select = root.querySelector<HTMLSelectElement>('[data-code-select]')!;
+    const query = root.querySelector<HTMLInputElement>('[data-law-query]')!;
+    const status = root.querySelector<HTMLElement>('[data-law-status]')!;
+    const results = root.querySelector<HTMLElement>('[data-law-results]')!;
+
+    let records: LawRecord[] = [];
+    const escapeHtml = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
       '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-    }[ch]));
+    })[ch] ?? ch);
 
     function render() {
       const q = query.value.trim().toLowerCase();
       const matches = q
-        ? records.filter(r => `${r.section ?? ''} ${r.citation ?? ''} ${r.text ?? ''} ${r.path ?? ''}`.toLowerCase().includes(q))
+        ? records.filter((r) => `${r.section ?? ''} ${r.citation ?? ''} ${r.text ?? ''} ${r.path ?? ''}`.toLowerCase().includes(q))
         : records;
       const visible = matches.slice(0, 100);
       status.textContent = `${matches.length.toLocaleString()} matching sections${matches.length > 100 ? ' — showing the first 100' : ''}.`;
-      results.innerHTML = visible.map(r => `
+      results.innerHTML = visible.map((r) => `
         <article class="law-section" id="law-${escapeHtml(r.uid)}">
           <header><a href="#law-${escapeHtml(r.uid)}"><strong>${escapeHtml(r.citation || r.section)}</strong></a>${r.repealed ? '<span class="repealed">Repealed</span>' : ''}</header>
           ${r.path ? `<div class="law-path">${escapeHtml(r.path)}</div>` : ''}
@@ -57,19 +69,24 @@ const base = import.meta.env.BASE_URL;
         </article>`).join('');
     }
 
-    async function loadCode(code) {
+    async function loadCode(code: string) {
       records = [];
       results.innerHTML = '';
       status.textContent = `Loading ${code} legislative records…`;
       try {
         const response = await fetch(`${base}data/law/${encodeURIComponent(code)}.jsonl`, { cache: 'no-cache' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+<<<<<<< HEAD
         const text = await response.text();
         records = text.split('\n').filter(Boolean).map(line => JSON.parse(line)).filter(r => r.kind === 'section');
+=======
+        const text = await response.text();
+        records = text.split('\n').filter(Boolean).map((line): LawRecord => JSON.parse(line)).filter((r) => r.kind === 'section');
+>>>>>>> 93b44c6 (Fix legislative snapshot base URL)
         render();
       } catch (error) {
         console.error('Legislative data load failed:', error);
-        status.textContent = `Could not load ${code}: ${error.message}`;
+        status.textContent = `Could not load ${code}: ${error instanceof Error ? error.message : String(error)}`;
       }
     }
 
