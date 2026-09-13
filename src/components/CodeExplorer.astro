@@ -42,7 +42,7 @@ const dataBase = base.endsWith('/') ? base : `${base}/`;
   }
 
   document.querySelectorAll<HTMLElement>('.law-explorer[data-base]').forEach((root) => {
-    const base = root.getAttribute('data-base') || '/';
+    const base = (root.getAttribute('data-base') || '/').replace(/\/?$/, '/');
     const select = root.querySelector<HTMLSelectElement>('[data-code-select]')!;
     const query = root.querySelector<HTMLInputElement>('[data-law-query]')!;
     const status = root.querySelector<HTMLElement>('[data-law-status]')!;
