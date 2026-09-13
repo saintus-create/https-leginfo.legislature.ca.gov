@@ -1,8 +1,8 @@
 ---
 const codes = [
   ['BPC','Business and Professions Code'], ['CIV','Civil Code'], ['CCP','Code of Civil Procedure'],
-  ['COM','Commercial Code'], ['CORP','Corporations Code'], ['CPC','Code of Civil Procedure'],
-  ['EDC','Education Code'], ['EVID','Evidence Code'], ['FAM','Family Code'], ['FIN','Financial Code'],
+  ['COM','Commercial Code'], ['CORP','Corporations Code'], ['EDC','Education Code'],
+  ['ELEC','Elections Code'], ['EVID','Evidence Code'], ['FAM','Family Code'], ['FIN','Financial Code'],
   ['FGC','Fish and Game Code'], ['FAC','Food and Agricultural Code'], ['GOV','Government Code'],
   ['HNC','Harbors and Navigation Code'], ['HEC','Health and Safety Code'], ['INS','Insurance Code'],
   ['LAB','Labor Code'], ['MVC','Military and Veterans Code'], ['PCC','Penal Code'], ['PROB','Probate Code'],
@@ -16,71 +16,75 @@ const base = import.meta.env.BASE_URL;
 <div class="law-explorer" data-base={base}>
   <div class="law-toolbar">
     <label>Code
-      <select id="code-select">
+      <select data-code-select>
         {codes.map(([abbr, name]) => <option value={abbr}>{abbr} — {name}</option>)}
       </select>
     </label>
     <label class="query">Find a section or text
-      <input id="law-query" type="search" placeholder="e.g. 187 or public records" autocomplete="off" />
+      <input data-law-query type="search" placeholder="e.g. 187 or public records" autocomplete="off" />
     </label>
   </div>
-  <div id="law-status" class="law-status">Choose a code to load its legislative records.</div>
-  <div id="law-results" class="law-results"></div>
+  <div data-law-status class="law-status">Loading legislative records…</div>
+  <div data-law-results class="law-results"></div>
 </div>
 
 <script>
-  const root = document.currentScript?.previousElementSibling;
-  const base = root?.dataset.base || '/';
-  const select = root?.querySelector('#code-select');
-  const query = root?.querySelector('#law-query');
-  const status = root?.querySelector('#law-status');
-  const results = root?.querySelector('#law-results');
-  let records = [];
+  document.querySelectorAll('.law-explorer[data-base]').forEach((root) => {
+    const base = root.getAttribute('data-base') || '/';
+    const select = root.querySelector('[data-code-select]');
+    const query = root.querySelector('[data-law-query]');
+    const status = root.querySelector('[data-law-status]');
+    const results = root.querySelector('[data-law-results]');
+    let records = [];
 
-  function escapeHtml(value) {
-    return value.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  }
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]));
 
-  function render() {
-    const q = query.value.trim().toLowerCase();
-    const matches = q
-      ? records.filter(r => `${r.section} ${r.citation} ${r.text} ${r.path}`.toLowerCase().includes(q))
-      : records;
-    const visible = matches.slice(0, 100);
-    status.textContent = `${matches.length.toLocaleString()} matching sections${matches.length > 100 ? ' — showing the first 100' : ''}.`;
-    results.innerHTML = visible.map(r => `
-      <article class="law-section" id="${escapeHtml(r.uid)}">
-        <header><a href="#${escapeHtml(r.uid)}"><strong>${escapeHtml(r.citation)}</strong></a>${r.repealed ? '<span class="repealed">Repealed</span>' : ''}</header>
-        ${r.path ? `<div class="law-path">${escapeHtml(r.path)}</div>` : ''}
-        <div class="law-text">${escapeHtml(r.text || 'No operative text.')}</div>
-        ${r.history ? `<details><summary>History</summary><div>${escapeHtml(r.history)}</div></details>` : ''}
-      </article>`).join('');
-  }
-
-  async function loadCode(code) {
-    records = [];
-    results.innerHTML = '';
-    status.textContent = `Loading ${code} legislative records…`;
-    try {
-      const response = await fetch(`${base}data/law/${code}.jsonl.gz`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      if (!('DecompressionStream' in window)) throw new Error('This browser does not support gzip streaming.');
-      const stream = response.body.pipeThrough(new DecompressionStream('gzip'));
-      const text = await new Response(stream).text();
-      records = text.split('\n').filter(Boolean).map(line => JSON.parse(line)).filter(r => r.kind === 'section');
-      render();
-    } catch (error) {
-      status.textContent = `Could not load ${code}: ${error.message}`;
+    function render() {
+      const q = query.value.trim().toLowerCase();
+      const matches = q
+        ? records.filter(r => `${r.section ?? ''} ${r.citation ?? ''} ${r.text ?? ''} ${r.path ?? ''}`.toLowerCase().includes(q))
+        : records;
+      const visible = matches.slice(0, 100);
+      status.textContent = `${matches.length.toLocaleString()} matching sections${matches.length > 100 ? ' — showing the first 100' : ''}.`;
+      results.innerHTML = visible.map(r => `
+        <article class="law-section" id="law-${escapeHtml(r.uid)}">
+          <header><a href="#law-${escapeHtml(r.uid)}"><strong>${escapeHtml(r.citation || r.section)}</strong></a>${r.repealed ? '<span class="repealed">Repealed</span>' : ''}</header>
+          ${r.path ? `<div class="law-path">${escapeHtml(r.path)}</div>` : ''}
+          <div class="law-text">${escapeHtml(r.text || 'No operative text.')}</div>
+          ${r.history ? `<details><summary>History</summary><div>${escapeHtml(r.history)}</div></details>` : ''}
+        </article>`).join('');
     }
-  }
 
-  select?.addEventListener('change', () => loadCode(select.value));
-  query?.addEventListener('input', render);
-  loadCode(select?.value || 'GOV');
+    async function loadCode(code) {
+      records = [];
+      results.innerHTML = '';
+      status.textContent = `Loading ${code} legislative records…`;
+      try {
+        const response = await fetch(`${base}data/law/${encodeURIComponent(code)}.jsonl.gz`, { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.body || !('DecompressionStream' in window)) {
+          throw new Error('This browser cannot decompress the legislative snapshot in the browser.');
+        }
+        const stream = response.body.pipeThrough(new DecompressionStream('gzip'));
+        const text = await new Response(stream).text();
+        records = text.split('\n').filter(Boolean).map(line => JSON.parse(line)).filter(r => r.kind === 'section');
+        render();
+      } catch (error) {
+        console.error('Legislative data load failed:', error);
+        status.textContent = `Could not load ${code}: ${error.message}`;
+      }
+    }
+
+    select.addEventListener('change', () => loadCode(select.value));
+    query.addEventListener('input', render);
+    loadCode(select.value || 'BPC');
+  });
 </script>
 
 <style>
-  .law-toolbar { display:grid; grid-template-columns: minmax(12rem, .8fr) minmax(16rem, 2fr); gap:1rem; margin:1.5rem 0; }
+  .law-toolbar { display:grid; grid-template-columns:minmax(12rem,.8fr) minmax(16rem,2fr); gap:1rem; margin:1.5rem 0; }
   .law-toolbar label { display:grid; gap:.4rem; font-size:.8rem; font-weight:600; }
   .law-toolbar select, .law-toolbar input { width:100%; padding:.65rem .75rem; border:1px solid var(--sl-color-gray-5); border-radius:.35rem; background:var(--sl-color-bg); color:var(--sl-color-text); font:inherit; }
   .law-status { margin:.75rem 0 1rem; color:var(--sl-color-gray-2); font-size:.9rem; }
