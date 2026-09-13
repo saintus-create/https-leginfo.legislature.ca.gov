@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-rm -rf public/data
-mkdir -p public/data/law
+rm -rf public/data public/ai-corpus
+mkdir -p public/data/law public/ai-corpus
 
 for file in data/law/*.jsonl.gz; do
   code="$(basename "$file" .jsonl.gz)"
@@ -30,5 +30,14 @@ done
   done
   printf '\n}\n'
 } > public/data/law/manifest.json
+
+{
+  printf '<!doctype html><html><head><meta charset="utf-8"><title>California Legislative Information corpus</title></head><body><h1>California Legislative Information corpus</h1><p>Machine-readable statute records for Cloudflare AI Search.</p><ul>\n'
+  for part in public/data/law/*.part-*; do
+    name="$(basename "$part")"
+    printf '<li><a href="../data/law/%s">%s</a></li>\n' "$name" "$name"
+  done
+  printf '</ul></body></html>\n'
+} > public/ai-corpus/index.html
 
 astro build
