@@ -29,6 +29,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Stage legislative snapshot for the Astro site
+        run: |
+          mkdir -p public/data/law
+          cp data/law/*.jsonl.gz public/data/law/
+
       - name: Build Astro site
         run: npm run build
 
