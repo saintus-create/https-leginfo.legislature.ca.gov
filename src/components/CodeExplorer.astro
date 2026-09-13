@@ -74,9 +74,15 @@ const dataBase = base.endsWith('/') ? base : `${base}/`;
       results.innerHTML = '';
       status.textContent = `Loading ${code} legislative records…`;
       try {
-        const response = await fetch(`${base}data/law/${encodeURIComponent(code)}.jsonl`, { cache: 'no-cache' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const text = await response.text();
+        const manifestResponse = await fetch(`${base}data/law/manifest.json`, { cache: 'no-cache' });
+        if (!manifestResponse.ok) throw new Error(`Manifest HTTP ${manifestResponse.status}`);
+        const manifest = await manifestResponse.json() as Record<string, string[]>;
+        const chunks = manifest[code];
+        if (!chunks?.length) throw new Error(`No data chunks found for ${code}`);
+        const responses = await Promise.all(chunks.map((chunk) => fetch(`${base}data/law/${encodeURIComponent(chunk)}`, { cache: 'no-cache' })));
+        const failed = responses.find((response) => !response.ok);
+        if (failed) throw new Error(`Data HTTP ${failed.status}`);
+        const text = (await Promise.all(responses.map((response) => response.text()))).join('');
         records = text.split('\n').filter(Boolean).map((line): LawRecord => JSON.parse(line)).filter((r) => r.kind === 'section');
         render();
       } catch (error) {
