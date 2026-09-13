@@ -1,54 +1,103 @@
+@import url('https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap');
+
 :root {
-  --sl-font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --sl-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --sl-content-width: 52rem;
+  --sl-font: 'Switzer', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sl-font-mono: 'SFMono-Regular', 'Cascadia Code', 'Liberation Mono', monospace;
+  --sl-content-width: 66rem;
   --sl-sidebar-width: 17rem;
-  --sl-text-5: 0.8125rem;
-  --sl-text-4: 0.9375rem;
+  --sl-text-5: 0.75rem;
+  --sl-text-4: 0.875rem;
   --sl-text-3: 1rem;
   --sl-text-2: 1.125rem;
   --sl-text-1: 1.375rem;
+  --accent: #d64a2f;
+  --accent-soft: #f3ded8;
+  --grid-line: rgba(17, 17, 17, 0.09);
 }
 
 :root[data-theme='light'] {
-  --sl-color-accent-low: #e9edf2;
-  --sl-color-accent: #1f2937;
-  --sl-color-accent-high: #111827;
+  --sl-color-accent-low: #f3ded8;
+  --sl-color-accent: #b63720;
+  --sl-color-accent-high: #6f1d10;
+  --sl-color-white: #111111;
+  --sl-color-gray-1: #282828;
+  --sl-color-gray-2: #4a4a4a;
+  --sl-color-gray-3: #707070;
+  --sl-color-gray-4: #a4a4a4;
+  --sl-color-gray-5: #d3d3d3;
+  --sl-color-gray-6: #e9e9e9;
+  --sl-color-gray-7: #f5f5f3;
+  --sl-color-black: #ffffff;
 }
 
 :root[data-theme='dark'] {
-  --sl-color-accent-low: #1f2937;
-  --sl-color-accent: #d1d5db;
-  --sl-color-accent-high: #f9fafb;
+  --sl-color-accent-low: #3c1c16;
+  --sl-color-accent: #f0785f;
+  --sl-color-accent-high: #ffb3a2;
+  --sl-color-white: #f7f7f4;
+  --sl-color-gray-1: #e6e6e2;
+  --sl-color-gray-2: #b8b8b3;
+  --sl-color-gray-3: #8d8d88;
+  --sl-color-gray-4: #62625e;
+  --sl-color-gray-5: #3c3c39;
+  --sl-color-gray-6: #262624;
+  --sl-color-gray-7: #181817;
+  --sl-color-black: #10100f;
+  --grid-line: rgba(247, 247, 244, 0.1);
+}
+
+html {
+  background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+}
+
+body {
+  font-family: var(--sl-font);
+  font-feature-settings: 'ss01' 1, 'cv02' 1;
+  letter-spacing: -0.006em;
+}
+
+.sl-container {
+  width: min(100% - 2rem, 78rem);
+}
+
+.main-pane {
+  background: color-mix(in srgb, var(--sl-color-black) 94%, transparent);
 }
 
 .sl-markdown-content {
   font-size: var(--sl-text-3);
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
 .sl-markdown-content h1,
 .sl-markdown-content h2,
 .sl-markdown-content h3,
 .sl-markdown-content h4 {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  font-family: var(--sl-font);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  text-wrap: balance;
 }
 
 .sl-markdown-content h1 {
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  margin-bottom: 1rem;
+  max-width: 12ch;
+  margin-bottom: 1.25rem;
+  font-size: clamp(2.25rem, 6vw, 4.75rem);
 }
 
 .sl-markdown-content h2 {
-  font-size: clamp(1.45rem, 3vw, 1.9rem);
-  margin-top: 2.75rem;
+  margin-top: 3.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sl-color-gray-5);
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
 }
 
 .sl-markdown-content h3 {
-  font-size: 1.25rem;
-  margin-top: 2rem;
+  margin-top: 2.25rem;
+  font-size: 1.35rem;
 }
 
 .sl-markdown-content p,
@@ -56,31 +105,60 @@
   max-width: 70ch;
 }
 
+.sl-markdown-content a {
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
 .sl-markdown-content code,
 .sl-markdown-content pre {
   font-family: var(--sl-font-mono);
 }
 
+.sl-markdown-content pre,
+.sl-markdown-content table,
+.sl-markdown-content blockquote,
+.sl-markdown-content .card-grid,
+.sl-markdown-content .sl-link-card {
+  border-radius: 0;
+}
+
 .sl-markdown-content table {
   width: 100%;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+}
+
+.sl-markdown-content th {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
 }
 
 .sl-markdown-content blockquote {
+  border-inline-start: 3px solid var(--accent);
+  background: var(--sl-color-gray-7);
   line-height: 1.6;
 }
 
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin: 2rem 0;
+  gap: 0;
+  margin: 2.5rem 0;
+  border: 1px solid var(--sl-color-gray-5);
 }
 
 .stat-grid > div {
-  border: 1px solid var(--sl-color-gray-5);
-  padding: 1rem;
+  min-height: 7rem;
+  padding: 1.1rem;
+  border-inline-end: 1px solid var(--sl-color-gray-5);
   background: var(--sl-color-gray-7);
+}
+
+.stat-grid > div:last-child {
+  border-inline-end: 0;
 }
 
 .stat-grid strong,
@@ -90,23 +168,25 @@
 
 .stat-grid strong {
   font-variant-numeric: tabular-nums;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-size: clamp(1.4rem, 3vw, 2.1rem);
+  font-weight: 600;
+  letter-spacing: -0.06em;
+  line-height: 1;
 }
 
 .stat-grid span {
-  margin-top: 0.35rem;
+  margin-top: 0.6rem;
   color: var(--sl-color-gray-2);
   font-size: var(--sl-text-5);
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .law-text {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.02rem;
-  line-height: 1.75;
+  font-family: var(--sl-font);
+  font-size: 1rem;
+  line-height: 1.72;
 }
 
 .law-path,
@@ -116,20 +196,62 @@
   font-family: var(--sl-font);
 }
 
+.law-toolbar,
+.explorer-toolbar {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--sl-color-gray-5);
+  background: var(--sl-color-gray-7);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border-radius: 0;
+  font-weight: 600;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 @media (max-width: 700px) {
+  .sl-container {
+    width: min(100% - 1.25rem, 78rem);
+  }
+
   .sl-markdown-content {
     font-size: 0.96875rem;
+  }
+
+  .sl-markdown-content h1 {
+    font-size: clamp(2.1rem, 13vw, 3.4rem);
   }
 
   .stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .stat-grid > div {
-    padding: 0.85rem;
+  .stat-grid > div:nth-child(2) {
+    border-inline-end: 0;
   }
 
-  .law-text {
-    font-size: 1rem;
+  .stat-grid > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
