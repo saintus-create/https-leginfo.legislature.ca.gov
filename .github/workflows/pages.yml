@@ -1,4 +1,4 @@
-name: Deploy crawlable law corpus
+name: Deploy Astro Starlight
 
 on:
   push:
@@ -20,24 +20,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.11'
-      - name: Build static HTML corpus
-        env:
-          PYTHONPATH: src
-        run: |
-          python -m leginfo export-html \
-            --output dist \
-            --base-url https://saintus-create.github.io/https-leginfo.legislature.ca.gov
-          touch dist/.nojekyll
-          test -s dist/index.html
-          test -s dist/robots.txt
-          test -s dist/sitemap-index.xml
-          test -s dist/codes/GOV/7921.000.html
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Astro site
+        run: npm run build
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

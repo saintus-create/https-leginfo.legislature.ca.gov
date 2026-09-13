@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" role="img" aria-label="California Legislative Information">
+  <rect width="180" height="48" rx="4" fill="currentColor"/>
+  <path d="M22 10h12v28H22zM38 10h4l-8 28h-4z" fill="white"/>
+  <text x="52" y="21" fill="white" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700">CALIFORNIA</text>
+  <text x="52" y="34" fill="white" font-family="Arial,Helvetica,sans-serif" font-size="8">LEGISLATIVE INFO</text>
+</svg>
