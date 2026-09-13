@@ -5,10 +5,15 @@ sidebar:
 description: Browse the actual section-level California legislative corpus inside Astro Starlight.
 ---
 
-# California Codes
-
-The code browser below reads the committed section-level legislative snapshot directly. Select a code, then search by section number, citation, text, or hierarchy path.
-
+import { Aside, Badge } from '@astrojs/starlight/components';
 import CodeExplorer from '../../components/CodeExplorer.astro';
+
+# California Codes <Badge text="Live explorer" variant="success" />
+
+The explorer reads the section-level legislative snapshot directly. Select a code, then search by section number, citation, statutory text, or hierarchy path.
+
+<Aside type="tip" title="Fastest way to find a section">
+  Choose a code first, then enter a section number such as **187** or a phrase such as **public records**. The explorer shows the first 100 matches.
+</Aside>
 
 <CodeExplorer />

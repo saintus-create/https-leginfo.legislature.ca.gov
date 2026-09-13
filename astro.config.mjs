@@ -15,17 +15,17 @@ export default defineConfig({
       customCss: ['./src/styles/custom.css'],
       sidebar: [
         {
-          label: 'Legislative Information',
+          label: 'Explore the corpus',
           items: [
             { label: 'Overview', slug: 'index' },
-            { label: 'Codes', slug: 'codes' },
-            { label: 'Search', slug: 'search' },
-            { label: 'Data & provenance', slug: 'data' },
+            { label: 'Browse Codes', slug: 'codes' },
+            { label: 'Search Sections', slug: 'search' },
           ],
         },
         {
-          label: 'Project',
+          label: 'Dataset & provenance',
           items: [
+            { label: 'Data overview', slug: 'data' },
             { label: 'Sources', slug: 'sources' },
             { label: 'Technical notes', slug: 'technical' },
           ],
