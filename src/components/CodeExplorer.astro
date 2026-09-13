@@ -76,7 +76,7 @@ const aiSearchEndpoint = 'https://5f679b75-e58c-4cbd-8350-b2c83df8f361.search.ai
       aiStatus.textContent = 'Searching the California legal corpus…';
       aiResults.innerHTML = '';
       try {
-        const response = await fetch(aiEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: text, ai_search_options: { retrieval: { retrieval_type: 'hybrid', max_num_results: 8, keyword_match_mode: 'or' } } }) });
+        const response = await fetch(aiEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: text }], ai_search_options: { retrieval: { max_num_results: 8, keyword_match_mode: 'or' } } }) });
         if (!response.ok) throw new Error(`AI Search HTTP ${response.status}`);
         const payload = await response.json();
         const chunks = (payload?.result?.chunks || []) as AiChunk[];
