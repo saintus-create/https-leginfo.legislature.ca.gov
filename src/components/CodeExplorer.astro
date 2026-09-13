@@ -76,13 +76,8 @@ const dataBase = base.endsWith('/') ? base : `${base}/`;
       try {
         const response = await fetch(`${base}data/law/${encodeURIComponent(code)}.jsonl`, { cache: 'no-cache' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-<<<<<<< HEAD
-        const text = await response.text();
-        records = text.split('\n').filter(Boolean).map(line => JSON.parse(line)).filter(r => r.kind === 'section');
-=======
         const text = await response.text();
         records = text.split('\n').filter(Boolean).map((line): LawRecord => JSON.parse(line)).filter((r) => r.kind === 'section');
->>>>>>> 93b44c6 (Fix legislative snapshot base URL)
         render();
       } catch (error) {
         console.error('Legislative data load failed:', error);
