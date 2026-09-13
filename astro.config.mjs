@@ -34,9 +34,9 @@ export default defineConfig({
       editLink: {
         baseUrl: 'https://github.com/saintus-create/https-leginfo.legislature.ca.gov/edit/main/src/content/docs/',
       },
-      social: {
-        github: 'https://github.com/saintus-create/https-leginfo.legislature.ca.gov',
-      },
+      social: [
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/saintus-create/https-leginfo.legislature.ca.gov' },
+      ],
     }),
   ],
 });
