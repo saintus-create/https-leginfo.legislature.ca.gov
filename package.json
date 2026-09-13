@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "bash scripts/build-site.sh",
+    "deploy": "bun run build && wrangler deploy",
     "preview": "astro preview",
     "check": "astro check"
   },
