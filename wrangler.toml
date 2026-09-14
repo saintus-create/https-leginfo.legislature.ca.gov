@@ -15,8 +15,8 @@ bucket_name = "r2objectstorage"
 [ai]
 binding = "AI"
 
-# Add the dedicated legislative D1 database before production deployment:
-# [[d1_databases]]
-# binding = "LEGINFO_DB"
-# database_name = "leginfo"
-# database_id = "<dedicated-d1-database-id>"
+# Dedicated legislative D1 database for production deployment
+[[d1_databases]]
+binding = "LEGINFO_DB"
+database_name = "leginfo"
+database_id = "YOUR_D1_DATABASE_ID_HERE"
