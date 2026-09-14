@@ -5,10 +5,13 @@ sidebar:
 ---
 
 import { Aside, Badge, Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import ResearchBox from '../../components/ResearchBox.astro';
 
 # California Legislative Information <Badge text="Public dataset" variant="note" />
 
-A local, queryable copy of California statutory law and legislative data, presented in a documentation-style interface.
+A structured, queryable copy of California statutory law with an AI research layer over the primary-source corpus.
+
+<ResearchBox />
 
 <div class="stat-grid">
   <div><strong>30</strong><span>codes</span></div>
@@ -18,7 +21,7 @@ A local, queryable copy of California statutory law and legislative data, presen
 </div>
 
 <Aside type="note" title="Start here">
-  Use **Browse Codes** for section-level text, or **Search Sections** to search within any individual code directly in your browser.
+  Ask a question above for natural-language research, or use **Browse Codes** for section-level text.
 </Aside>
 
 ## Start with the law
@@ -34,13 +37,13 @@ A local, queryable copy of California statutory law and legislative data, presen
 
 <CardGrid>
   <Card title="A structured corpus">
-    The repository stores section-level records for the California Constitution and the 29 California statutory codes.
+    The repository stores section-level records for the California Constitution and the California statutory codes.
   </Card>
-  <Card title="Reproducible tooling">
-    The canonical snapshot is JSON Lines, compressed one file per code. A SQLite database and retrieval-ready Markdown corpus can be generated from that source of truth.
+  <Card title="Research infrastructure">
+    Deterministic retrieval, statutory relationships, temporal records, citations, and AI reasoning are kept as separate layers so the answer can be inspected rather than merely trusted.
   </Card>
 </CardGrid>
 
 <Aside type="caution" title="Reference use">
-  This project is a structured local copy of information published by the California Legislature. Consult the [official source](https://leginfo.legislature.ca.gov/) for authoritative current text.
+  This project is a structured copy of information published by the California Legislature. Consult the [official source](https://leginfo.legislature.ca.gov/) for authoritative current text.
 </Aside>
