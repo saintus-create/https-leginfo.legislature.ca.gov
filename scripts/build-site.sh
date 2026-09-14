@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-rm -rf public/data public/ai-corpus
+SESSION="${LEGINFO_SESSION:-2025}"
+SITE_BASE="${SITE_BASE:-/https-leginfo.legislature.ca.gov}"
+
+rm -rf public/data public/ai-corpus public/bills
 mkdir -p public/data/law public/ai-corpus
 
+# The law snapshot is committed and remains the canonical statutory source.
 python3 scripts/build-research-index.py
+
+# Build the queryable database, then import the official bill archive for the
+# current legislative session. The official 2025 archive is ~1.2 GB, so it is
+# deliberately downloaded in CI rather than committed to Git.
+python3 -m leginfo build-db
+python3 -m leginfo import-bills --session "$SESSION"
+SITE_BASE="$SITE_BASE" python3 scripts/export-bills.py
 
 for file in data/law/*.jsonl.gz; do
   code="$(basename "$file" .jsonl.gz)"
