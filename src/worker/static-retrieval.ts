@@ -1,3 +1,4 @@
+import { citationForSection } from '../leginfo/citations';
 import type { EvidenceBundle, HistoryEvent, RelationshipEdge, ResearchRetriever, RetrievalQuery, RetrievedSection } from './retrieval';
 
 interface FetcherLike { fetch(input: Request | string, init?: RequestInit): Promise<Response>; }
@@ -44,12 +45,12 @@ function score(rec: any, terms: string[], phrase: string): number {
 export class StaticCorpusRetriever implements ResearchRetriever {
   constructor(private readonly assets: FetcherLike, private readonly baseUrl: URL) {}
 
-  private async manifest(): Promise<{ codes: Record<string, string[]>; _parts?: Record<string, { sha256: string; bytes: number }> }> {
+  private async manifest(): Promise<{ codes: Record<string, string[]> }> {
     const r = await this.assets.fetch(new URL('/data/law/manifest.json', this.baseUrl).toString());
     if (!r.ok) throw new Error(`Legislative corpus manifest unavailable (${r.status}).`);
-    const manifest = await r.json() as { codes?: Record<string, string[]>; _parts?: Record<string, { sha256: string; bytes: number }> };
+    const manifest = await r.json() as { codes?: Record<string, string[]> };
     if (!manifest.codes || typeof manifest.codes !== 'object') throw new Error('Legislative corpus manifest is invalid.');
-    return manifest as { codes: Record<string, string[]>; _parts?: Record<string, { sha256: string; bytes: number }> };
+    return manifest as { codes: Record<string, string[]> };
   }
 
   private async index(): Promise<any> {
@@ -96,7 +97,7 @@ export class StaticCorpusRetriever implements ResearchRetriever {
     const section = String(rec.section || '');
     return {
       uid: String(rec.uid || `${code}:${section}`), lawCode: code, sectionNum: section,
-      citation: String(rec.citation || `${CODE_NAMES[code] || code} § ${section}`),
+      citation: citationForSection({ lawCode: code, sectionNum: section }),
       title: typeof rec.title === 'string' ? rec.title : undefined,
       text: String(rec.text || ''), history: typeof rec.history === 'string' ? rec.history : undefined,
       relevance, matchType,
