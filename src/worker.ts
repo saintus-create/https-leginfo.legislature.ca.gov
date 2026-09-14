@@ -1,6 +1,9 @@
+import { retrieve, type D1Database, type RetrievalQuery } from './worker/retrieval';
+
 interface Env {
   ASSETS: Fetcher;
   R2: R2Bucket;
+  LEGINFO_DB?: D1Database;
   AI_SEARCH_ENDPOINT?: string;
 }
 
@@ -10,7 +13,7 @@ const MAX_QUERY_LENGTH = 1000;
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8' },
+    headers: { 'content-type': 'application/json; charset=utf-8', ...corsHeaders() },
   });
 }
 
@@ -57,11 +60,35 @@ async function aiSearch(request: Request, env: Env): Promise<Response> {
   });
 }
 
+async function legislativeSearch(request: Request, env: Env): Promise<Response> {
+  if (!env.LEGINFO_DB) {
+    return json({ error: 'Legislative retrieval is not configured.' }, 503);
+  }
+
+  const body = await request.json().catch(() => null) as RetrievalQuery | null;
+  if (!body || typeof body.query !== 'string') {
+    return json({ error: 'A search query is required.' }, 400);
+  }
+
+  try {
+    const evidence = await retrieve(env.LEGINFO_DB, body);
+    return json(evidence);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Legislative retrieval failed.';
+    const status = message.includes('too long') ? 413 : 400;
+    return json({ error: message }, status);
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders() });
 
     const url = new URL(request.url);
+
+    if (url.pathname === '/api/search' && request.method === 'POST') {
+      return await legislativeSearch(request, env);
+    }
 
     if (url.pathname === '/api/answer' && request.method === 'POST') {
       try {
@@ -72,7 +99,12 @@ export default {
     }
 
     if (url.pathname === '/api/health' && request.method === 'GET') {
-      return json({ ok: true, service: 'leginfo', ai: Boolean(env.AI_SEARCH_ENDPOINT || DEFAULT_AI_SEARCH_ENDPOINT) });
+      return json({
+        ok: true,
+        service: 'leginfo',
+        retrieval: Boolean(env.LEGINFO_DB),
+        ai: Boolean(env.AI_SEARCH_ENDPOINT || DEFAULT_AI_SEARCH_ENDPOINT),
+      });
     }
 
     const assetResponse = await env.ASSETS.fetch(request);
