@@ -4,6 +4,8 @@ set -euo pipefail
 rm -rf public/data public/ai-corpus
 mkdir -p public/data/law public/ai-corpus
 
+python3 scripts/build-research-index.py
+
 for file in data/law/*.jsonl.gz; do
   code="$(basename "$file" .jsonl.gz)"
   tmp="public/data/law/${code}.jsonl"
