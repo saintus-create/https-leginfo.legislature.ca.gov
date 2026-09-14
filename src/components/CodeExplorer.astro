@@ -1,137 +1,26 @@
 ---
-const codes = [
-  ['BPC','Business and Professions Code'], ['CIV','Civil Code'], ['CCP','Code of Civil Procedure'],
-  ['COM','Commercial Code'], ['CORP','Corporations Code'], ['EDC','Education Code'],
-  ['ELEC','Elections Code'], ['EVID','Evidence Code'], ['FAM','Family Code'], ['FIN','Financial Code'],
-  ['FGC','Fish and Game Code'], ['FAC','Food and Agricultural Code'], ['GOV','Government Code'],
-  ['HNC','Harbors and Navigation Code'], ['HSC','Health and Safety Code'], ['INS','Insurance Code'],
-  ['LAB','Labor Code'], ['MVC','Military and Veterans Code'], ['PCC','Penal Code'], ['PROB','Probate Code'],
-  ['PUC','Public Utilities Code'], ['RTC','Revenue and Taxation Code'], ['SHC','Streets and Highways Code'],
-  ['UIC','Unemployment Insurance Code'], ['VEH','Vehicle Code'], ['WAT','Water Code'],
-  ['WIC','Welfare and Institutions Code'], ['CONS','California Constitution']
-];
-const base = import.meta.env.BASE_URL;
-const dataBase = base.endsWith('/') ? base : `${base}/`;
-const aiSearchEndpoint = 'https://5f679b75-e58c-4cbd-8350-b2c83df8f361.search.ai.cloudflare.com/search';
+const codes=[['BPC','Business and Professions Code'],['CIV','Civil Code'],['CCP','Code of Civil Procedure'],['EVID','Evidence Code'],['FAM','Family Code'],['GOV','Government Code'],['HSC','Health and Safety Code'],['LAB','Labor Code'],['PCC','Penal Code'],['PROB','Probate Code'],['WIC','Welfare and Institutions Code'],['CONS','California Constitution']];
+const base=import.meta.env.BASE_URL;
 ---
-
-<div class="law-explorer" data-base={dataBase} data-ai-endpoint={aiSearchEndpoint}>
-  <section class="ai-search-panel" aria-labelledby="ai-search-heading">
-    <div class="ai-eyebrow">Cloudflare AI Search</div>
-    <h2 id="ai-search-heading">Ask the California statutes</h2>
-    <p class="ai-description">Describe the legal concept, question, or citation you are researching. AI Search finds relevant passages across all 30 codes.</p>
-    <form data-ai-form>
-      <input data-ai-query type="search" placeholder="e.g. What law governs public records requests?" autocomplete="off" required />
-      <button type="submit">Search with AI</button>
-    </form>
-    <div data-ai-status class="ai-status" aria-live="polite">Ready for a natural-language search.</div>
-    <div data-ai-results class="ai-results"></div>
-  </section>
-
-  <section aria-labelledby="browse-heading">
-    <h2 id="browse-heading">Browse the corpus</h2>
-    <p>Use the local code browser for exact section-number and text lookup.</p>
-    <div class="law-toolbar">
-      <label>Code
-        <select data-code-select>
-          {codes.map(([abbr, name]) => <option value={abbr}>{abbr} — {name}</option>)}
-        </select>
-      </label>
-      <label class="query">Find a section or text
-        <input data-law-query type="search" placeholder="e.g. 187 or public records" autocomplete="off" />
-      </label>
-    </div>
-    <div data-law-status class="law-status">Loading legislative records…</div>
-    <div data-law-results class="law-results"></div>
-  </section>
-</div>
-
+<div class="law-explorer" data-base={base}>
+<section class="research-panel" aria-labelledby="research-heading">
+<div class="eyebrow">California Legislative Research</div><h2 id="research-heading">Ask a legal question</h2>
+<p>Ask in ordinary language. The research engine identifies the relevant codes, searches the statutory corpus, follows relationships, checks history when needed, and produces a cited analysis.</p>
+<form data-research-form><input data-research-query type="search" placeholder="What do Family Code and Government Code have in common?" autocomplete="off" required/><button type="submit">Research</button></form>
+<div data-research-status class="status" aria-live="polite">Ready.</div><article data-research-answer class="answer" hidden></article>
+</section>
+<section aria-labelledby="browse-heading"><h2 id="browse-heading">Browse the corpus</h2><p>Exact section and text lookup across the published corpus.</p>
+<div class="toolbar"><label>Code<select data-code-select>{codes.map(([a,n])=><option value={a}>{a} — {n}</option>)}</select></label><label>Find<input data-law-query type="search" placeholder="e.g. 300 or custody" autocomplete="off"/></label></div>
+<div data-law-status class="status">Loading…</div><div data-law-results></div></section></div>
 <script>
-  interface LawRecord { uid?: string; kind?: string; section?: string; citation?: string; text?: string; path?: string; history?: string; repealed?: boolean; }
-  interface AiChunk { text?: string; score?: number; item?: { key?: string }; }
-
-  document.querySelectorAll<HTMLElement>('.law-explorer[data-base]').forEach((root) => {
-    const base = (root.getAttribute('data-base') || '/').replace(/\/?$/, '/');
-    const aiEndpoint = root.getAttribute('data-ai-endpoint')!;
-    const select = root.querySelector<HTMLSelectElement>('[data-code-select]')!;
-    const query = root.querySelector<HTMLInputElement>('[data-law-query]')!;
-    const status = root.querySelector<HTMLElement>('[data-law-status]')!;
-    const results = root.querySelector<HTMLElement>('[data-law-results]')!;
-    const aiForm = root.querySelector<HTMLFormElement>('[data-ai-form]')!;
-    const aiQuery = root.querySelector<HTMLInputElement>('[data-ai-query]')!;
-    const aiStatus = root.querySelector<HTMLElement>('[data-ai-status]')!;
-    const aiResults = root.querySelector<HTMLElement>('[data-ai-results]')!;
-    let records: LawRecord[] = [];
-    const escapeHtml = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[ch] ?? ch);
-
-    function render() {
-      const q = query.value.trim().toLowerCase();
-      const matches = q ? records.filter((r) => `${r.section ?? ''} ${r.citation ?? ''} ${r.text ?? ''} ${r.path ?? ''}`.toLowerCase().includes(q)) : records;
-      const visible = matches.slice(0, 100);
-      status.textContent = `${matches.length.toLocaleString()} matching sections${matches.length > 100 ? ' — showing the first 100' : ''}.`;
-      results.innerHTML = visible.map((r) => `<article class="law-section" id="law-${escapeHtml(r.uid)}"><header><a href="#law-${escapeHtml(r.uid)}"><strong>${escapeHtml(r.citation || r.section)}</strong></a>${r.repealed ? '<span class="repealed">Repealed</span>' : ''}</header>${r.path ? `<div class="law-path">${escapeHtml(r.path)}</div>` : ''}<div class="law-text">${escapeHtml(r.text || 'No operative text.')}</div>${r.history ? `<details><summary>History</summary><div>${escapeHtml(r.history)}</div></details>` : ''}</article>`).join('');
-    }
-
-    async function askAi(text: string) {
-      aiStatus.textContent = 'Searching the California legal corpus…';
-      aiResults.innerHTML = '';
-      try {
-        const response = await fetch(aiEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: text }], ai_search_options: { retrieval: { max_num_results: 8, keyword_match_mode: 'or' } } }) });
-        if (!response.ok) throw new Error(`AI Search HTTP ${response.status}`);
-        const payload = await response.json();
-        const chunks = (payload?.result?.chunks || []) as AiChunk[];
-        if (!chunks.length) { aiStatus.textContent = 'No relevant passages found. Try a broader question.'; return; }
-        aiStatus.textContent = `${chunks.length} relevant passages found.`;
-        aiResults.innerHTML = chunks.map((chunk) => `<article class="ai-result"><div class="ai-result-meta">${escapeHtml(chunk.item?.key || 'California statute')} · relevance ${Math.round((chunk.score || 0) * 100)}%</div><div>${escapeHtml(chunk.text || '')}</div></article>`).join('');
-      } catch (error) {
-        console.error('AI Search failed:', error);
-        aiStatus.textContent = `AI Search is temporarily unavailable: ${error instanceof Error ? error.message : String(error)}. The exact browser search below is still available.`;
-      }
-    }
-
-    async function loadCode(code: string) {
-      records = []; results.innerHTML = ''; status.textContent = `Loading ${code} legislative records…`;
-      try {
-        const manifestResponse = await fetch(`${base}data/law/manifest.json`, { cache: 'no-cache' });
-        if (!manifestResponse.ok) throw new Error(`Manifest HTTP ${manifestResponse.status}`);
-        const manifest = await manifestResponse.json() as Record<string, string[]>;
-        const chunks = manifest[code]; if (!chunks?.length) throw new Error(`No data chunks found for ${code}`);
-        const responses = await Promise.all(chunks.map((chunk) => fetch(`${base}data/law/${encodeURIComponent(chunk)}`, { cache: 'no-cache' })));
-        const failed = responses.find((response) => !response.ok); if (failed) throw new Error(`Data HTTP ${failed.status}`);
-        const text = (await Promise.all(responses.map((response) => response.text()))).join('');
-        records = text.split('\n').filter(Boolean).map((line): LawRecord => JSON.parse(line)).filter((r) => r.kind === 'section'); render();
-      } catch (error) { console.error('Legislative data load failed:', error); status.textContent = `Could not load ${code}: ${error instanceof Error ? error.message : String(error)}`; }
-    }
-
-    aiForm.addEventListener('submit', (event) => { event.preventDefault(); const text = aiQuery.value.trim(); if (text) askAi(text); });
-    select.addEventListener('change', () => loadCode(select.value));
-    query.addEventListener('input', render);
-    loadCode(select.value || 'BPC');
-  });
+interface Law{uid?:string;kind?:string;section?:string;citation?:string;text?:string;path?:string;history?:string;repealed?:boolean} interface Research{answer?:string;state?:{intent?:string;findings?:Array<{uid?:string;citation?:string;lawCode?:string;sectionNum?:string;text?:string}>;unresolved?:string[]}}
+const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]??c));
+document.querySelectorAll<HTMLElement>('.law-explorer').forEach(root=>{const base=(root.dataset.base||'/').replace(/\/?$/,'/');const form=root.querySelector<HTMLFormElement>('[data-research-form]')!,input=root.querySelector<HTMLInputElement>('[data-research-query]')!,rs=root.querySelector<HTMLElement>('[data-research-status]')!,answer=root.querySelector<HTMLElement>('[data-research-answer]')!,select=root.querySelector<HTMLSelectElement>('[data-code-select]')!,q=root.querySelector<HTMLInputElement>('[data-law-query]')!,ls=root.querySelector<HTMLElement>('[data-law-status]')!,lr=root.querySelector<HTMLElement>('[data-law-results]')!;let records:Law[]=[];
+async function research(text:string){rs.textContent='Researching the statutory corpus…';answer.hidden=true;answer.innerHTML='';try{const r=await fetch('/api/research',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:text})});const data=await r.json() as Research;if(!r.ok)throw new Error(String((data as {error?:string}).error||`HTTP ${r.status}`));answer.innerHTML=`<div class="answer-text">${esc(data.answer||'Research evidence retrieved, but no generation provider is configured.')}</div>${data.state?.findings?.length?`<details><summary>Evidence (${data.state.findings.length})</summary>${data.state.findings.slice(0,30).map(s=>`<div class="evidence"><strong>${esc(s.citation||`${s.lawCode||''} § ${s.sectionNum||''}`)}</strong><div>${esc(s.text)}</div></div>`).join('')}</details>`:''}${data.state?.unresolved?.length?`<details><summary>Limits</summary><div>${data.state.unresolved.map(x=>`<div>${esc(x)}</div>`).join('')}</div></details>`:''}`;answer.hidden=false;rs.textContent=`Research complete · ${data.state?.intent||'research'}`;}catch(e){rs.textContent=`Research unavailable: ${e instanceof Error?e.message:String(e)}`;}}
+function render(){const x=q.value.trim().toLowerCase(),m=x?records.filter(r=>`${r.section||''} ${r.citation||''} ${r.text||''} ${r.path||''}`.toLowerCase().includes(x)):records;ls.textContent=`${m.length.toLocaleString()} matching sections.`;lr.innerHTML=m.slice(0,100).map(r=>`<article class="law-section"><strong>${esc(r.citation||r.section)}</strong>${r.path?`<div class="path">${esc(r.path)}</div>`:''}<div class="law-text">${esc(r.text||'')}</div>${r.history?`<details><summary>History</summary>${esc(r.history)}</details>`:''}</article>`).join('');}
+async function load(code:string){records=[];lr.innerHTML='';ls.textContent=`Loading ${code}…`;try{const mr=await fetch(`${base}data/law/manifest.json`);if(!mr.ok)throw Error(`manifest HTTP ${mr.status}`);const manifest=await mr.json() as Record<string,string[]>;const chunks=manifest[code];if(!chunks?.length)throw Error(`No ${code} data`);const rr=await Promise.all(chunks.map(c=>fetch(`${base}data/law/${encodeURIComponent(c)}`)));if(rr.some(x=>!x.ok))throw Error('A corpus chunk failed to load');const text=(await Promise.all(rr.map(x=>x.text()))).join('');records=text.split('\n').filter(Boolean).map(x=>JSON.parse(x) as Law).filter(x=>x.kind==='section');render();}catch(e){ls.textContent=`Could not load ${code}: ${e instanceof Error?e.message:String(e)}`;}}
+form.addEventListener('submit',e=>{e.preventDefault();const x=input.value.trim();if(x)research(x)});select.addEventListener('change',()=>load(select.value));q.addEventListener('input',render);load(select.value);});
 </script>
-
 <style>
-  .ai-search-panel { border:1px solid var(--sl-color-accent); border-radius:.75rem; padding:1.25rem; margin:1.5rem 0 2rem; background:color-mix(in srgb, var(--sl-color-accent-low) 35%, var(--sl-color-bg)); }
-  .ai-eyebrow { color:var(--sl-color-text-accent); font-size:.75rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
-  .ai-search-panel h2 { margin:.25rem 0 .35rem; }
-  .ai-description { margin:0 0 1rem; }
-  [data-ai-form] { display:flex; gap:.6rem; }
-  [data-ai-form] input { flex:1; min-width:0; padding:.7rem .8rem; border:1px solid var(--sl-color-gray-5); border-radius:.35rem; background:var(--sl-color-bg); color:var(--sl-color-text); font:inherit; }
-  [data-ai-form] button { padding:.7rem 1rem; border:0; border-radius:.35rem; background:var(--sl-color-accent); color:var(--sl-color-white); font:inherit; font-weight:700; cursor:pointer; }
-  .ai-status { margin:.75rem 0; color:var(--sl-color-gray-2); font-size:.9rem; }
-  .ai-result { border-top:1px solid var(--sl-color-gray-5); padding:.9rem 0; line-height:1.6; }
-  .ai-result-meta { margin-bottom:.35rem; color:var(--sl-color-text-accent); font-size:.8rem; font-weight:600; }
-  .law-toolbar { display:grid; grid-template-columns:minmax(12rem,.8fr) minmax(16rem,2fr); gap:1rem; margin:1.5rem 0; }
-  .law-toolbar label { display:grid; gap:.4rem; font-size:.8rem; font-weight:600; }
-  .law-toolbar select, .law-toolbar input { width:100%; padding:.65rem .75rem; border:1px solid var(--sl-color-gray-5); border-radius:.35rem; background:var(--sl-color-bg); color:var(--sl-color-text); font:inherit; }
-  .law-status { margin:.75rem 0 1rem; color:var(--sl-color-gray-2); font-size:.9rem; }
-  .law-section { border-top:1px solid var(--sl-color-gray-5); padding:1.25rem 0; scroll-margin-top:5rem; }
-  .law-section header { display:flex; align-items:center; gap:.65rem; }
-  .law-section header a { color:var(--sl-color-text-accent); text-decoration:none; }
-  .law-path { margin:.35rem 0 .8rem; color:var(--sl-color-gray-2); font-size:.8rem; }
-  .law-text { white-space:pre-wrap; line-height:1.65; }
-  .law-section details { margin-top:1rem; font-size:.9rem; }
-  .law-section summary { cursor:pointer; color:var(--sl-color-text-accent); }
-  .repealed { border:1px solid var(--sl-color-gray-5); padding:.15rem .4rem; border-radius:.3rem; font-size:.7rem; text-transform:uppercase; }
-  @media (max-width:700px) { .law-toolbar { grid-template-columns:1fr; } [data-ai-form] { flex-direction:column; } }
+.research-panel{padding:1.5rem 0 2rem;margin-bottom:2rem;background:color-mix(in srgb,var(--sl-color-accent-low) 28%,var(--sl-color-bg));border-radius:.8rem;padding-inline:1.25rem}.eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sl-color-text-accent)}.research-panel h2{margin:.25rem 0}.research-panel p{max-width:60rem}.research-panel form{display:flex;gap:.6rem}.research-panel input{flex:1;min-width:0}.research-panel input,.research-panel button,.toolbar input,.toolbar select{padding:.7rem .8rem;border:0;border-radius:.4rem;background:var(--sl-color-bg);color:var(--sl-color-text);font:inherit}.research-panel button{background:var(--sl-color-accent);color:var(--sl-color-white);font-weight:700;cursor:pointer}.status{margin:.8rem 0;color:var(--sl-color-gray-2);font-size:.9rem}.answer{line-height:1.7}.answer-text{white-space:pre-wrap;margin:1rem 0}.answer details{margin-top:1rem}.evidence{border-top:1px solid var(--sl-color-gray-5);padding:.8rem 0}.evidence strong{color:var(--sl-color-text-accent)}.evidence div{margin-top:.3rem;white-space:pre-wrap}.toolbar{display:grid;grid-template-columns:12rem 1fr;gap:1rem;margin:1.25rem 0}.toolbar label{display:grid;gap:.4rem;font-size:.8rem;font-weight:600}.law-section{border-top:1px solid var(--sl-color-gray-5);padding:1.2rem 0}.law-text{white-space:pre-wrap;line-height:1.65;margin-top:.5rem}.path{font-size:.8rem;color:var(--sl-color-gray-2);margin-top:.3rem}@media(max-width:700px){.research-panel form,.toolbar{display:flex;flex-direction:column}}
 </style>
