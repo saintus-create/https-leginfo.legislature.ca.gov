@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import starlightThemeBlack from 'starlight-theme-black';
 
 export default defineConfig({
   site: 'https://saintus-create.github.io',
@@ -37,6 +38,14 @@ export default defineConfig({
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/saintus-create/https-leginfo.legislature.ca.gov' },
       ],
+    }),
+    starlightThemeBlack({
+      docs: {
+        showMarkdownActions: false,
+      },
+      sidebar: {
+        useDropdowns: false,
+      },
     }),
   ],
 });
