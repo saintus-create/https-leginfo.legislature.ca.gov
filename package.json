@@ -3,5 +3,5 @@
   "private":true,
   "type":"module",
   "scripts":{"dev":"astro dev","build":"bash scripts/build-site.sh","deploy":"bun run build && wrangler deploy","preview":"astro preview","check":"astro check","test":"bun test"},
-  "dependencies":{"@astrojs/starlight":"^0.41.3","astro":"^6.0.0","starlight-theme-black":"^0.7.1"}
+  "dependencies":{"@astrojs/starlight":"^0.41.3","astro":"^7.0.2","starlight-theme-black":"^0.7.1"}
 }
