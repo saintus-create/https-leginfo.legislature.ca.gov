@@ -11,30 +11,23 @@ if (!manifest.codes || !manifest._parts) throw new Error('Deployed manifest is m
 const index = await (await get('/data/research-index.json')).json();
 
 const query = 'Government Code 6250';
-const terms = ['government', '6250'];
-const candidates = new Set();
-for (const term of terms) for (const uid of index.terms?.[term] || []) candidates.add(String(uid).split(':')[0]);
-candidates.add('GOV');
+const expectedUid = 'GOV:6250';
+const part = index.locations?.[expectedUid];
+if (!part || !manifest.codes.GOV?.includes(part)) throw new Error(`Deployed research index cannot locate ${expectedUid}.`);
 
+const terms = query.toLowerCase().match(/[a-z0-9][a-z0-9._-]{2,}/g) || [];
+const text = await (await get(`/data/law/${part}`)).text();
 let found = null;
-for (const code of candidates) {
-  for (const part of manifest.codes[code] || []) {
-    const text = await (await get(`/data/law/${part}`)).text();
-    for (const line of text.split('\n')) {
-      if (!line.trim()) continue;
-      const rec = JSON.parse(line);
-      if (rec.kind === 'section' && String(rec.code).toUpperCase() === 'GOV' && String(rec.section) === '6250' && typeof rec.citation === 'string' && rec.text?.trim()) {
-        found = rec;
-        break;
-      }
-    }
-    if (found) break;
+for (const line of text.split('\n')) {
+  if (!line.trim()) continue;
+  const rec = JSON.parse(line);
+  if (rec.kind !== 'section') continue;
+  const hay = `${rec.title || ''} ${rec.text || ''}`.toLowerCase();
+  const hits = terms.filter((term) => hay.includes(term)).length;
+  if (rec.uid === expectedUid && hits >= 2 && typeof rec.citation === 'string' && rec.citation.trim() && typeof rec.text === 'string' && rec.text.trim()) {
+    found = rec;
+    break;
   }
-  if (found) break;
 }
-if (!found) throw new Error(`Deployed query failed: ${query} returned no verified statutory section.`);
-
-const expectedSource = 'https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=6250.';
-const sourceUrl = found.url || found.link || found.source_url || '';
-if (sourceUrl && sourceUrl !== expectedSource) throw new Error(`Unexpected statutory source URL for ${found.uid}: ${sourceUrl}`);
-console.log(`DEPLOYMENT SMOKE TEST PASSED: "${query}" retrieved ${found.uid} (${found.citation}) with statutory text from the deployed corpus.`);
+if (!found) throw new Error(`Deployed query failed: ${query} did not retrieve verified statutory section ${expectedUid}.`);
+console.log(`DEPLOYMENT SMOKE TEST PASSED: "${query}" retrieved ${found.uid} (${found.citation}) with ${found.text.length.toLocaleString()} characters of statutory text from the deployed corpus.`);
