@@ -82,3 +82,20 @@ CREATE VIRTUAL TABLE IF NOT EXISTS law_sections_fts USING fts5(
   content_rowid='rowid',
   tokenize='porter unicode61'
 );
+
+CREATE TRIGGER IF NOT EXISTS law_sections_ai AFTER INSERT ON law_sections BEGIN
+  INSERT INTO law_sections_fts(rowid, uid, code, section, citation, text, history)
+  VALUES (new.rowid, new.uid, new.code, new.section, new.citation, new.text, new.history);
+END;
+
+CREATE TRIGGER IF NOT EXISTS law_sections_ad AFTER DELETE ON law_sections BEGIN
+  INSERT INTO law_sections_fts(law_sections_fts, rowid, uid, code, section, citation, text, history)
+  VALUES ('delete', old.rowid, old.uid, old.code, old.section, old.citation, old.text, old.history);
+END;
+
+CREATE TRIGGER IF NOT EXISTS law_sections_au AFTER UPDATE ON law_sections BEGIN
+  INSERT INTO law_sections_fts(law_sections_fts, rowid, uid, code, section, citation, text, history)
+  VALUES ('delete', old.rowid, old.uid, old.code, old.section, old.citation, old.text, old.history);
+  INSERT INTO law_sections_fts(rowid, uid, code, section, citation, text, history)
+  VALUES (new.rowid, new.uid, new.code, new.section, new.citation, new.text, new.history);
+END;
