@@ -40,6 +40,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Cache official bulk archive
+        uses: actions/cache@v4
+        with:
+          path: data/raw/pubinfo_${{ env.LEGINFO_SESSION }}.zip
+          key: ${{ runner.os }}-leginfo-pubinfo-${{ env.LEGINFO_SESSION }}-v1
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build, import official bills, checksum, and verify corpus
