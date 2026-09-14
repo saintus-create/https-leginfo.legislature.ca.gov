@@ -1,118 +1,54 @@
-@import url('https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap');
-
 :root {
-  --sl-font: 'Switzer', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --sl-font-mono: 'SFMono-Regular', 'Cascadia Code', 'Liberation Mono', monospace;
-  --sl-content-width: 66rem;
-  --sl-sidebar-width: 17rem;
-  --sl-text-5: 0.75rem;
-  --sl-text-4: 0.875rem;
-  --sl-text-3: 1rem;
-  --sl-text-2: 1.125rem;
-  --sl-text-1: 1.375rem;
-  --accent: #d64a2f;
-  --accent-soft: #f3ded8;
-  --grid-line: rgba(17, 17, 17, 0.09);
-}
-
-:root[data-theme='light'] {
-  --sl-color-accent-low: #f3ded8;
-  --sl-color-accent: #b63720;
-  --sl-color-accent-high: #6f1d10;
-  --sl-color-white: #111111;
-  --sl-color-gray-1: #282828;
-  --sl-color-gray-2: #4a4a4a;
-  --sl-color-gray-3: #707070;
-  --sl-color-gray-4: #a4a4a4;
-  --sl-color-gray-5: #d3d3d3;
-  --sl-color-gray-6: #e9e9e9;
-  --sl-color-gray-7: #f5f5f3;
-  --sl-color-black: #ffffff;
+  --sl-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sl-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --sl-content-width: 70rem;
+  --sl-sidebar-width: 18rem;
 }
 
 :root[data-theme='dark'] {
-  --sl-color-accent-low: #3c1c16;
-  --sl-color-accent: #f0785f;
-  --sl-color-accent-high: #ffb3a2;
-  --sl-color-white: #f7f7f4;
-  --sl-color-gray-1: #e6e6e2;
-  --sl-color-gray-2: #b8b8b3;
-  --sl-color-gray-3: #8d8d88;
-  --sl-color-gray-4: #62625e;
-  --sl-color-gray-5: #3c3c39;
-  --sl-color-gray-6: #262624;
-  --sl-color-gray-7: #181817;
-  --sl-color-black: #10100f;
-  --grid-line: rgba(247, 247, 244, 0.1);
+  --sl-color-accent-low: #17263a;
+  --sl-color-accent: #79a9dc;
+  --sl-color-accent-high: #c3dcf5;
+  --sl-color-white: #f8fafc;
+  --sl-color-gray-1: #e2e8f0;
+  --sl-color-gray-2: #b7c0cc;
+  --sl-color-gray-3: #8792a0;
+  --sl-color-gray-4: #5c6673;
+  --sl-color-gray-5: #39424e;
+  --sl-color-gray-6: #242b34;
+  --sl-color-gray-7: #171c23;
+  --sl-color-black: #0f1217;
 }
 
-html {
-  background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 2rem 2rem;
-}
-
-body {
-  font-family: var(--sl-font);
-  font-feature-settings: 'ss01' 1, 'cv02' 1;
-  letter-spacing: -0.006em;
-}
-
-.sl-container {
-  width: min(100% - 2rem, 78rem);
-}
-
-.main-pane {
-  background: color-mix(in srgb, var(--sl-color-black) 94%, transparent);
+:root[data-theme='light'] {
+  --sl-color-accent-low: #e9f2fb;
+  --sl-color-accent: #245b91;
+  --sl-color-accent-high: #123b63;
 }
 
 .sl-markdown-content {
-  font-size: var(--sl-text-3);
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
 .sl-markdown-content h1,
 .sl-markdown-content h2,
 .sl-markdown-content h3,
 .sl-markdown-content h4 {
-  font-family: var(--sl-font);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-  text-wrap: balance;
+  letter-spacing: -0.025em;
 }
 
 .sl-markdown-content h1 {
-  max-width: 12ch;
-  margin-bottom: 1.25rem;
-  font-size: clamp(2.25rem, 6vw, 4.75rem);
+  font-size: clamp(2.1rem, 5vw, 3.8rem);
 }
 
-.sl-markdown-content h2 {
-  margin-top: 3.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--sl-color-gray-5);
-  font-size: clamp(1.55rem, 3vw, 2.25rem);
+.sl-markdown-content table {
+  width: 100%;
 }
 
-.sl-markdown-content h3 {
-  margin-top: 2.25rem;
-  font-size: 1.35rem;
-}
-
-.sl-markdown-content p,
-.sl-markdown-content li {
-  max-width: 70ch;
-}
-
-.sl-markdown-content a {
-  text-underline-offset: 0.18em;
-  text-decoration-thickness: 1px;
-}
-
-.sl-markdown-content code,
-.sl-markdown-content pre {
-  font-family: var(--sl-font-mono);
+.sl-markdown-content th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .sl-markdown-content pre,
@@ -120,45 +56,21 @@ body {
 .sl-markdown-content blockquote,
 .sl-markdown-content .card-grid,
 .sl-markdown-content .sl-link-card {
-  border-radius: 0;
-}
-
-.sl-markdown-content table {
-  width: 100%;
-  font-size: 0.875rem;
-  border-collapse: collapse;
-}
-
-.sl-markdown-content th {
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-size: 0.7rem;
-}
-
-.sl-markdown-content blockquote {
-  border-inline-start: 3px solid var(--accent);
-  background: var(--sl-color-gray-7);
-  line-height: 1.6;
+  border-radius: 0.375rem;
 }
 
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-  margin: 2.5rem 0;
-  border: 1px solid var(--sl-color-gray-5);
+  gap: 0.75rem;
+  margin: 2rem 0;
 }
 
 .stat-grid > div {
-  min-height: 7rem;
-  padding: 1.1rem;
-  border-inline-end: 1px solid var(--sl-color-gray-5);
+  padding: 1rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
   background: var(--sl-color-gray-7);
-}
-
-.stat-grid > div:last-child {
-  border-inline-end: 0;
 }
 
 .stat-grid strong,
@@ -167,91 +79,59 @@ body {
 }
 
 .stat-grid strong {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  font-size: clamp(1.4rem, 3vw, 2.1rem);
-  font-weight: 600;
-  letter-spacing: -0.06em;
-  line-height: 1;
 }
 
 .stat-grid span {
-  margin-top: 0.6rem;
+  margin-top: 0.4rem;
   color: var(--sl-color-gray-2);
-  font-size: var(--sl-text-5);
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
+.bill-text,
 .law-text {
-  font-family: var(--sl-font);
   font-size: 1rem;
-  line-height: 1.72;
+  line-height: 1.75;
+  white-space: pre-wrap;
 }
 
-.law-path,
-.law-status,
-.law-toolbar label,
-.repealed {
-  font-family: var(--sl-font);
-}
-
-.law-toolbar,
-.explorer-toolbar {
+.bill-meta,
+.law-meta {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
-  padding: 1rem;
+  margin: 1.5rem 0;
+}
+
+.bill-meta > div,
+.law-meta > div {
+  padding: 0.8rem 1rem;
   border: 1px solid var(--sl-color-gray-5);
-  background: var(--sl-color-gray-7);
+  border-radius: 0.375rem;
 }
 
-button,
-input,
-select {
-  font: inherit;
-}
-
-button {
-  border-radius: 0;
+.bill-meta dt,
+.law-meta dt {
+  color: var(--sl-color-gray-3);
+  font-size: 0.72rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
+.bill-meta dd,
+.law-meta dd {
+  margin: 0.2rem 0 0;
 }
 
 @media (max-width: 700px) {
-  .sl-container {
-    width: min(100% - 1.25rem, 78rem);
-  }
-
-  .sl-markdown-content {
-    font-size: 0.96875rem;
-  }
-
-  .sl-markdown-content h1 {
-    font-size: clamp(2.1rem, 13vw, 3.4rem);
-  }
-
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stat-grid > div:nth-child(2) {
-    border-inline-end: 0;
-  }
-
-  .stat-grid > div:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--sl-color-gray-5);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+  .stat-grid,
+  .bill-meta,
+  .law-meta {
+    grid-template-columns: 1fr;
   }
 }
