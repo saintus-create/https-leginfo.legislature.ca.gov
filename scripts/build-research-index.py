@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LAW = ROOT / "data" / "law"
 OUT = ROOT / "public" / "data" / "research-index.json"
+PART_BYTES = 10 * 1024 * 1024
 
 CODE_NAMES = {
     "BPC": "Business and Professions Code", "CIV": "Civil Code", "CCP": "Code of Civil Procedure",
@@ -55,8 +56,7 @@ def words(text: str) -> int:
 
 def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    result = {"version": 2, "codes": {}, "terms": {}}
-    # token -> up to 12 representative sections, ranked by token frequency in that section
+    result = {"version": 3, "partBytes": PART_BYTES, "codes": {}, "terms": {}, "locations": {}}
     term_candidates: dict[str, list[list[object]]] = defaultdict(list)
 
     files = sorted(LAW.glob("*.jsonl.gz"))
@@ -65,8 +65,17 @@ def main() -> None:
         best_words = None
         best_chars = None
         section_count = 0
+        uncompressed_offset = 0
+        part_number = 0
+        next_boundary = PART_BYTES
         with gzip.open(path, "rt", encoding="utf-8") as fh:
             for line in fh:
+                line_bytes = len(line.encode("utf-8"))
+                if uncompressed_offset and uncompressed_offset + line_bytes > next_boundary:
+                    part_number += 1
+                    next_boundary = (part_number + 1) * PART_BYTES
+                current_part = f"{code}.part-{part_number:03d}"
+                uncompressed_offset += line_bytes
                 try:
                     rec = json.loads(line)
                 except json.JSONDecodeError:
@@ -76,6 +85,7 @@ def main() -> None:
                 section_count += 1
                 section = str(rec.get("section") or "")
                 uid = str(rec.get("uid") or f"{code}:{section}")
+                result["locations"][uid] = current_part
                 text = rec.get("text") or ""
                 for sent in sentences(text):
                     candidate = {
@@ -94,7 +104,6 @@ def main() -> None:
                 for token, count in counts.most_common():
                     bucket = term_candidates[token]
                     bucket.append([uid, count])
-                    # Keep the index bounded while retaining strong matches.
                     if len(bucket) > 16:
                         bucket.sort(key=lambda x: (-int(x[1]), str(x[0])))
                         del bucket[12:]
