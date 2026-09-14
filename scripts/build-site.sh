@@ -10,7 +10,8 @@ for file in data/law/*.jsonl.gz; do
   code="$(basename "$file" .jsonl.gz)"
   tmp="public/data/law/${code}.jsonl"
   gzip -dc "$file" > "$tmp"
-  split -b 10m -d -a 3 "$tmp" "public/data/law/${code}.part-"
+  # Keep JSONL records intact so browser and Worker retrieval can stream-search them.
+  split -C 10m -d -a 3 "$tmp" "public/data/law/${code}.part-"
   rm "$tmp"
 done
 
