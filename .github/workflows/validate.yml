@@ -26,3 +26,5 @@ jobs:
         run: bun install
       - name: Test research orchestrator
         run: bun test tests/orchestrator.test.ts
+      - name: Build and verify deployed corpus artifact
+        run: bash scripts/build-site.sh
