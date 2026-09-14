@@ -11,3 +11,12 @@ directory = "./dist"
 [[r2_buckets]]
 binding = "R2"
 bucket_name = "r2objectstorage"
+
+[ai]
+binding = "AI"
+
+# Add the dedicated legislative D1 database before production deployment:
+# [[d1_databases]]
+# binding = "LEGINFO_DB"
+# database_name = "leginfo"
+# database_id = "<dedicated-d1-database-id>"
