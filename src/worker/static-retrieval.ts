@@ -14,8 +14,8 @@ const CODE_NAMES: Record<string, string> = {
 
 const ALIASES: Record<string, string> = {
   ...Object.fromEntries(Object.entries(CODE_NAMES).flatMap(([k, v]) => [[k.toLowerCase(), k], [v.toLowerCase(), k]])),
-  'family': 'FAM', 'government': 'GOV', 'civil': 'CIV', 'penal': 'PEN', 'evidence': 'EVID', 'probate': 'PROB',
-  'labor': 'LAB', 'health and safety': 'HSC', 'welfare and institutions': 'WIC', 'vehicle': 'VEH', 'education': 'EDC',
+  family: 'FAM', government: 'GOV', civil: 'CIV', penal: 'PEN', evidence: 'EVID', probate: 'PROB',
+  labor: 'LAB', 'health and safety': 'HSC', 'welfare and institutions': 'WIC', vehicle: 'VEH', education: 'EDC',
   'business and professions': 'BPC', 'code of civil procedure': 'CCP', 'california constitution': 'CONS',
 };
 
@@ -44,10 +44,12 @@ function score(rec: any, terms: string[], phrase: string): number {
 export class StaticCorpusRetriever implements ResearchRetriever {
   constructor(private readonly assets: FetcherLike, private readonly baseUrl: URL) {}
 
-  private async manifest(): Promise<Record<string, string[]>> {
+  private async manifest(): Promise<{ codes: Record<string, string[]>; _parts?: Record<string, { sha256: string; bytes: number }> }> {
     const r = await this.assets.fetch(new URL('/data/law/manifest.json', this.baseUrl).toString());
     if (!r.ok) throw new Error(`Legislative corpus manifest unavailable (${r.status}).`);
-    return await r.json() as Record<string, string[]>;
+    const manifest = await r.json() as { codes?: Record<string, string[]>; _parts?: Record<string, { sha256: string; bytes: number }> };
+    if (!manifest.codes || typeof manifest.codes !== 'object') throw new Error('Legislative corpus manifest is invalid.');
+    return manifest as { codes: Record<string, string[]>; _parts?: Record<string, { sha256: string; bytes: number }> };
   }
 
   private async index(): Promise<any> {
@@ -116,12 +118,12 @@ export class StaticCorpusRetriever implements ResearchRetriever {
     if (!code && idx.terms) {
       for (const term of terms) for (const uid of (idx.terms[term] || [])) candidateCodes.add(String(uid).split(':')[0]);
     }
-    if (!candidateCodes.size) Object.keys(manifest).slice(0, 6).forEach(c => candidateCodes.add(c));
+    if (!candidateCodes.size) Object.keys(manifest.codes).slice(0, 6).forEach(c => candidateCodes.add(c));
 
     const exactMatch = exact?.match(/^([A-Z0-9]+):(.+)$/);
     const all: any[] = [];
     for (const c of candidateCodes) {
-      const parts = manifest[c] || [];
+      const parts = manifest.codes[c] || [];
       for (const part of parts) {
         const found = await this.scanPart(part, terms, phrase, exactMatch?.[1], exactMatch?.[2], limit);
         all.push(...found);
