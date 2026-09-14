@@ -14,9 +14,3 @@ bucket_name = "r2objectstorage"
 
 [ai]
 binding = "AI"
-
-# Dedicated legislative D1 database for production deployment
-[[d1_databases]]
-binding = "LEGINFO_DB"
-database_name = "leginfo"
-database_id = "YOUR_D1_DATABASE_ID_HERE"
