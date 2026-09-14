@@ -26,7 +26,7 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
-      - name: Build corpus, retrieval index, and Astro site
+      - name: Build, checksum, and verify corpus
         run: bash scripts/build-site.sh
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -44,3 +44,7 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify deployed corpus retrieval
+        env:
+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node scripts/smoke-test-deployment.mjs "$PAGES_URL"
