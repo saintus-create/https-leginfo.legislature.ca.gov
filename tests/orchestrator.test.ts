@@ -1,0 +1,7 @@
+import {describe,expect,test} from 'bun:test';
+import {resolveCodes,inferIntent,planResearch,ResearchOrchestrator} from '../src/worker/orchestrator';
+import type {ResearchRetriever,EvidenceBundle,RetrievedSection,RelationshipEdge,HistoryEvent} from '../src/worker/retrieval';
+const s=(uid:string,c:string):RetrievedSection=>({uid,lawCode:c,sectionNum:'1',citation:{lawCode:c,sectionNum:'1',url:''},text:c,relevance:1,matchType:'fulltext'});
+class Fake implements ResearchRetriever{async search(x:{query:string;code?:string}):Promise<EvidenceBundle>{const c=x.code||'FAM';return{query:x.query,results:[s(c+':1',c)],relationships:[],retrieval:{methods:['full-text'],complete:true}}}async getSection(){return null}async getRelationships(uid:string):Promise<RelationshipEdge[]>{return[{sourceUid:uid,targetUid:'GOV:2',relationship:'references',confidence:1}]}async getHistory(uid:string):Promise<HistoryEvent[]>{return[{id:uid,uid,eventType:'amended'}]}}
+test('resolves comparison',()=>{expect(resolveCodes('Family Code and Government Code')).toEqual(['FAM','GOV']);expect(inferIntent('what do they have in common?',['FAM','GOV'])).toBe('compare');expect(planResearch('Family Code and Government Code have in common').steps.length).toBeGreaterThan(5)});
+test('orchestrates evidence',async()=>{const r=await new ResearchOrchestrator(new Fake()).research('What do Family Code and Government Code have in common?');expect(r.state.codes).toEqual(['FAM','GOV']);expect(r.state.findings.length).toBeGreaterThan(1);expect(r.state.relationships.length).toBeGreaterThan(0)});
