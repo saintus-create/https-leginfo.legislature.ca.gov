@@ -29,6 +29,9 @@ export interface RetrievedSection {
   matchType: 'exact' | 'fulltext' | 'relationship';
   relationship?: string;
   referenceText?: string;
+  corpusVersionId?: string;
+  validFrom?: string;
+  validTo?: string;
 }
 
 export interface RelationshipEdge {
@@ -37,6 +40,21 @@ export interface RelationshipEdge {
   relationship: string;
   referenceText?: string;
   confidence: number;
+}
+
+export interface HistoryEvent {
+  id: string;
+  uid: string;
+  eventType: string;
+  effectiveDate?: string;
+  enactedDate?: string;
+  session?: string;
+  billId?: string;
+  chapter?: string;
+  sourceKey?: string;
+  sourceUrl?: string;
+  description?: string;
+  versionId?: string;
 }
 
 export interface EvidenceBundle {
@@ -50,6 +68,7 @@ export interface ResearchRetriever {
   search(input: RetrievalQuery): Promise<EvidenceBundle>;
   getSection(uid: string, versionId?: string): Promise<RetrievedSection | null>;
   getRelationships(uid: string, options?: { direction?: 'outbound' | 'inbound' | 'both'; depth?: number; limit?: number }): Promise<RelationshipEdge[]>;
+  getHistory(uid: string, options?: { versionId?: string; from?: string; to?: string; limit?: number }): Promise<HistoryEvent[]>;
 }
 
 const MAX_QUERY_LENGTH = 1000;
@@ -77,6 +96,26 @@ function rowToSection(row: Record<string, unknown>, relevance: number, matchType
     relevance, matchType,
     relationship: typeof row.relationship === 'string' ? row.relationship : undefined,
     referenceText: typeof row.reference_text === 'string' ? row.reference_text : undefined,
+    corpusVersionId: typeof row.corpus_version_id === 'string' ? row.corpus_version_id : undefined,
+    validFrom: typeof row.valid_from === 'string' ? row.valid_from : undefined,
+    validTo: typeof row.valid_to === 'string' ? row.valid_to : undefined,
+  };
+}
+
+function rowToHistory(row: Record<string, unknown>): HistoryEvent {
+  return {
+    id: String(row.id ?? ''),
+    uid: String(row.uid ?? ''),
+    eventType: String(row.event_type ?? 'unknown'),
+    effectiveDate: typeof row.effective_date === 'string' ? row.effective_date : undefined,
+    enactedDate: typeof row.enacted_date === 'string' ? row.enacted_date : undefined,
+    session: typeof row.session === 'string' ? row.session : undefined,
+    billId: typeof row.bill_id === 'string' ? row.bill_id : undefined,
+    chapter: typeof row.chapter === 'string' ? row.chapter : undefined,
+    sourceKey: typeof row.source_key === 'string' ? row.source_key : undefined,
+    sourceUrl: typeof row.source_url === 'string' ? row.source_url : undefined,
+    description: typeof row.description === 'string' ? row.description : undefined,
+    versionId: typeof row.version_id === 'string' ? row.version_id : undefined,
   };
 }
 
@@ -87,8 +126,8 @@ export class D1ResearchRetriever implements ResearchRetriever {
     const key = clean(uid);
     if (!key) return null;
     const row = versionId
-      ? await this.db.prepare(`SELECT uid, code, section, title, text, history FROM law_section_versions WHERE uid = ? AND corpus_version_id = ? LIMIT 1`).bind(key, versionId).first()
-      : await this.db.prepare(`SELECT uid, code, section, title, text, history FROM law_sections WHERE uid = ? LIMIT 1`).bind(key).first();
+      ? await this.db.prepare(`SELECT uid, code, section, title, text, history, corpus_version_id, valid_from, valid_to FROM law_section_versions WHERE uid = ? AND corpus_version_id = ? LIMIT 1`).bind(key, versionId).first()
+      : await this.db.prepare(`SELECT uid, code, section, title, text, history, corpus_version_id FROM law_sections WHERE uid = ? LIMIT 1`).bind(key).first();
     return row ? rowToSection(row, 1, 'exact') : null;
   }
 
@@ -106,8 +145,8 @@ export class D1ResearchRetriever implements ResearchRetriever {
     if (exact) {
       const uid = typeof exact === 'string' ? exact : `${exact.code}:${exact.section}`;
       const row = typeof exact === 'string'
-        ? await this.db.prepare('SELECT uid, code, section, title, text, history FROM law_sections WHERE uid = ? LIMIT 1').bind(uid).first()
-        : await this.db.prepare('SELECT uid, code, section, title, text, history FROM law_sections WHERE code = ? AND section = ? LIMIT 1').bind(exact.code, exact.section).first();
+        ? await this.db.prepare('SELECT uid, code, section, title, text, history, corpus_version_id FROM law_sections WHERE uid = ? LIMIT 1').bind(uid).first()
+        : await this.db.prepare('SELECT uid, code, section, title, text, history, corpus_version_id FROM law_sections WHERE code = ? AND section = ? LIMIT 1').bind(exact.code, exact.section).first();
       if (row) { const section = rowToSection(row, 1, 'exact'); results.push(section); seen.add(section.uid); methods.push('exact-section'); }
     }
 
@@ -115,8 +154,8 @@ export class D1ResearchRetriever implements ResearchRetriever {
     if (tokens.length) {
       const matchExpression = tokens.map(t => `"${t.replace(/"/g, '')}"`).join(' OR ');
       const sql = code
-        ? `SELECT s.uid, s.code, s.section, s.title, s.text, s.history, bm25(law_sections_fts) AS rank FROM law_sections_fts f JOIN law_sections s ON s.rowid = f.rowid WHERE law_sections_fts MATCH ? AND s.code = ? ORDER BY rank LIMIT ?`
-        : `SELECT s.uid, s.code, s.section, s.title, s.text, s.history, bm25(law_sections_fts) AS rank FROM law_sections_fts f JOIN law_sections s ON s.rowid = f.rowid WHERE law_sections_fts MATCH ? ORDER BY rank LIMIT ?`;
+        ? `SELECT s.uid, s.code, s.section, s.title, s.text, s.history, s.corpus_version_id, bm25(law_sections_fts) AS rank FROM law_sections_fts f JOIN law_sections s ON s.rowid = f.rowid WHERE law_sections_fts MATCH ? AND s.code = ? ORDER BY rank LIMIT ?`
+        : `SELECT s.uid, s.code, s.section, s.title, s.text, s.history, s.corpus_version_id, bm25(law_sections_fts) AS rank FROM law_sections_fts f JOIN law_sections s ON s.rowid = f.rowid WHERE law_sections_fts MATCH ? ORDER BY rank LIMIT ?`;
       const rows = code ? await this.db.prepare(sql).bind(matchExpression, code, limit * 2).all() : await this.db.prepare(sql).bind(matchExpression, limit * 2).all();
       methods.push('full-text');
       for (const row of rows.results) {
@@ -126,6 +165,7 @@ export class D1ResearchRetriever implements ResearchRetriever {
         if (results.length >= limit) break;
       }
     }
+
     return { query, results: results.slice(0, limit), relationships: [], retrieval: { methods, complete: true } };
   }
 
@@ -135,39 +175,62 @@ export class D1ResearchRetriever implements ResearchRetriever {
     const depth = Math.min(Math.max(options.depth ?? 1, 1), MAX_TRAVERSAL_DEPTH);
     const limit = Math.min(Math.max(options.limit ?? 25, 1), MAX_TRAVERSAL_NODES);
     const edges: RelationshipEdge[] = [];
+    const seenEdges = new Set<string>();
     const visited = new Set<string>([root]);
     let frontier = [root];
 
     for (let level = 0; level < depth && frontier.length && edges.length < limit; level++) {
       const next: string[] = [];
       for (const current of frontier) {
-        let rows: { results: Record<string, unknown>[] } = { results: [] };
         if (direction === 'outbound' || direction === 'both') {
           const out = await this.db.prepare(`SELECT source_uid, target_uid, relationship, reference_text, confidence FROM section_relationships WHERE source_uid = ? LIMIT ?`).bind(current, limit - edges.length).all();
-          rows.results.push(...out.results);
+          for (const row of out.results) this.addRelationship(row, current, edges, seenEdges, visited, next, limit);
         }
         if (direction === 'inbound' || direction === 'both') {
           const incoming = await this.db.prepare(`SELECT source_uid, target_uid, relationship, reference_text, confidence FROM section_relationships WHERE target_uid = ? LIMIT ?`).bind(current, limit - edges.length).all();
-          rows.results.push(...incoming.results);
-        }
-        for (const row of rows.results) {
-          const edge: RelationshipEdge = {
-            sourceUid: String(row.source_uid ?? ''), targetUid: row.target_uid ? String(row.target_uid) : undefined,
-            relationship: String(row.relationship ?? 'related'), referenceText: row.reference_text ? String(row.reference_text) : undefined,
-            confidence: Number.isFinite(Number(row.confidence)) ? Number(row.confidence) : 1,
-          };
-          const edgeKey = `${edge.sourceUid}|${edge.targetUid ?? ''}|${edge.relationship}|${edge.referenceText ?? ''}`;
-          if (edges.some(e => `${e.sourceUid}|${e.targetUid ?? ''}|${e.relationship}|${e.referenceText ?? ''}` === edgeKey)) continue;
-          edges.push(edge);
-          const neighbor = edge.sourceUid === current ? edge.targetUid : edge.sourceUid;
-          if (neighbor && !visited.has(neighbor) && visited.size < MAX_TRAVERSAL_NODES) { visited.add(neighbor); next.push(neighbor); }
-          if (edges.length >= limit) break;
+          for (const row of incoming.results) this.addRelationship(row, current, edges, seenEdges, visited, next, limit);
         }
         if (edges.length >= limit) break;
       }
       frontier = next;
     }
     return edges;
+  }
+
+  private addRelationship(
+    row: Record<string, unknown>,
+    current: string,
+    edges: RelationshipEdge[],
+    seenEdges: Set<string>,
+    visited: Set<string>,
+    next: string[],
+    limit: number,
+  ): void {
+    if (edges.length >= limit) return;
+    const edge: RelationshipEdge = {
+      sourceUid: String(row.source_uid ?? ''), targetUid: row.target_uid ? String(row.target_uid) : undefined,
+      relationship: String(row.relationship ?? 'related'), referenceText: row.reference_text ? String(row.reference_text) : undefined,
+      confidence: Number.isFinite(Number(row.confidence)) ? Number(row.confidence) : 1,
+    };
+    const edgeKey = `${edge.sourceUid}|${edge.targetUid ?? ''}|${edge.relationship}|${edge.referenceText ?? ''}`;
+    if (seenEdges.has(edgeKey)) return;
+    seenEdges.add(edgeKey);
+    edges.push(edge);
+    const neighbor = edge.sourceUid === current ? edge.targetUid : edge.sourceUid;
+    if (neighbor && !visited.has(neighbor) && visited.size < MAX_TRAVERSAL_NODES) { visited.add(neighbor); next.push(neighbor); }
+  }
+
+  async getHistory(uid: string, options: { versionId?: string; from?: string; to?: string; limit?: number } = {}): Promise<HistoryEvent[]> {
+    const key = clean(uid);
+    if (!key) return [];
+    const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
+    const conditions = ['uid = ?'];
+    const values: unknown[] = [key];
+    if (options.versionId) { conditions.push('version_id = ?'); values.push(options.versionId); }
+    if (options.from) { conditions.push('(effective_date IS NULL OR effective_date >= ?)'); values.push(options.from); }
+    if (options.to) { conditions.push('(effective_date IS NULL OR effective_date <= ?)'); values.push(options.to); }
+    const rows = await this.db.prepare(`SELECT id, uid, event_type, effective_date, enacted_date, session, bill_id, chapter, source_key, source_url, description, version_id FROM legislative_history_events WHERE ${conditions.join(' AND ')} ORDER BY COALESCE(effective_date, enacted_date, '9999-12-31'), id LIMIT ?`).bind(...values, limit).all();
+    return rows.results.map(rowToHistory);
   }
 }
 
