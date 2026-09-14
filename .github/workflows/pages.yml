@@ -20,37 +20,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Install dependencies
         run: npm install
-
-      - name: Build deterministic research index
-        run: python3 scripts/build-research-index.py
-
-      - name: Stage legislative snapshot for the Astro site
-        run: |
-          mkdir -p public/data/law
-          for file in data/law/*.jsonl.gz; do
-            name="$(basename "$file" .gz)"
-            gzip -dc "$file" > "public/data/law/$name"
-          done
-
-      - name: Build Astro site
-        run: npm run build
-
+      - name: Build corpus, retrieval index, and Astro site
+        run: bash scripts/build-site.sh
       - name: Configure Pages
         uses: actions/configure-pages@v5
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-
   deploy:
     environment:
       name: github-pages
