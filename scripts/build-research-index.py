@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Build a compact deterministic research index from the law corpus."""
+"""Build deterministic research metadata and a compact lexical index from the law corpus."""
 from __future__ import annotations
 
 import gzip
 import json
 import re
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,10 +24,14 @@ CODE_NAMES = {
     "VEH": "Vehicle Code", "WAT": "Water Code", "WIC": "Welfare and Institutions Code", "CONS": "California Constitution",
 }
 
-# Split only on sentence-ending punctuation followed by whitespace/capitalization.
-# This deliberately avoids treating decimal points and common abbreviations as boundaries.
 BOUNDARY = re.compile(r"(?<=[.!?])(?:[\"'”’\)\]]*)\s+(?=[A-Z0-9\"'“‘\(\[])" )
 ABBREV = re.compile(r"\b(?:Mr|Mrs|Ms|Dr|Prof|Inc|Ltd|No|Nos|Sec|Secs|Cal|U\.S|e\.g|i\.e)\.$", re.I)
+TOKEN = re.compile(r"[a-z0-9][a-z0-9._-]{2,}", re.I)
+STOP = {
+    "the", "and", "for", "that", "this", "with", "from", "shall", "may", "must", "such", "which",
+    "into", "upon", "under", "there", "their", "them", "than", "then", "where", "when", "what",
+    "have", "has", "had", "not", "any", "all", "each", "other", "more", "only", "section", "sections",
+}
 
 
 def sentences(text: str):
@@ -50,7 +55,10 @@ def words(text: str) -> int:
 
 def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    result = {"version": 1, "codes": {}}
+    result = {"version": 2, "codes": {}, "terms": {}}
+    # token -> up to 12 representative sections, ranked by token frequency in that section
+    term_candidates: dict[str, list[list[object]]] = defaultdict(list)
+
     files = sorted(LAW.glob("*.jsonl.gz"))
     for path in files:
         code = path.name.split(".")[0].upper()
@@ -66,11 +74,13 @@ def main() -> None:
                 if rec.get("kind") != "section":
                     continue
                 section_count += 1
+                section = str(rec.get("section") or "")
+                uid = str(rec.get("uid") or f"{code}:{section}")
                 text = rec.get("text") or ""
                 for sent in sentences(text):
                     candidate = {
-                        "citation": rec.get("citation") or f"{code} § {rec.get('section', '')}",
-                        "section": rec.get("section"),
+                        "citation": rec.get("citation") or f"{code} § {section}",
+                        "section": section,
                         "text": sent,
                         "wordCount": words(sent),
                         "charCount": len(sent),
@@ -79,6 +89,16 @@ def main() -> None:
                         best_words = candidate
                     if best_chars is None or candidate["charCount"] > best_chars["charCount"]:
                         best_chars = candidate
+
+                counts = Counter(t.lower() for t in TOKEN.findall(f"{rec.get('title') or ''} {text}") if t.lower() not in STOP)
+                for token, count in counts.most_common():
+                    bucket = term_candidates[token]
+                    bucket.append([uid, count])
+                    # Keep the index bounded while retaining strong matches.
+                    if len(bucket) > 16:
+                        bucket.sort(key=lambda x: (-int(x[1]), str(x[0])))
+                        del bucket[12:]
+
         result["codes"][code] = {
             "name": CODE_NAMES.get(code, code),
             "sectionCount": section_count,
@@ -86,8 +106,13 @@ def main() -> None:
             "longestSentenceByChars": best_chars,
         }
         print(f"research-index: {code} {section_count:,} sections")
+
+    result["terms"] = {
+        token: [uid for uid, _count in sorted(items, key=lambda x: (-int(x[1]), str(x[0])))[:12]]
+        for token, items in term_candidates.items()
+    }
     OUT.write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"research-index: wrote {OUT} ({OUT.stat().st_size:,} bytes)")
+    print(f"research-index: wrote {OUT} ({OUT.stat().st_size:,} bytes; {len(result['terms']):,} terms)")
 
 
 if __name__ == "__main__":
