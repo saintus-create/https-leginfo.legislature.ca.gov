@@ -28,7 +28,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --no-progress
       - name: Test research orchestrator
         run: bun test tests/orchestrator.test.ts
       - name: Build and verify deployed corpus artifact
