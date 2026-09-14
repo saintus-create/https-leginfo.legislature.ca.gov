@@ -1,4 +1,5 @@
 name = "https-leginfo-legislature-ca-gov"
+main = "src/worker.ts"
 compatibility_date = "2026-09-13"
 
 [build]
@@ -6,3 +7,7 @@ command = "bun run build"
 
 [assets]
 directory = "./dist"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "r2objectstorage"
