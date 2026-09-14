@@ -1,28 +1,28 @@
 name: Validate legislative corpus
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: validate
   cancel-in-progress: true
-
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Validate compressed JSONL corpus
         run: node scripts/validate-corpus.mjs
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Test research orchestrator
+        run: bun test tests/orchestrator.test.ts
