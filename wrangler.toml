@@ -1,12 +1,14 @@
 name = "https-leginfo-legislature-ca-gov"
 main = "src/worker.ts"
-compatibility_date = "2026-09-13"
+compatibility_date = "2026-09-15"
+compatibility_flags = ["nodejs_compat"]
 
 [build]
 command = "bun run build"
 
 [assets]
 directory = "./dist"
+not_found_handling = "single-page-application"
 
 [[r2_buckets]]
 binding = "R2"
@@ -20,6 +22,18 @@ binding = "AI_SEARCH"
 instance_name = "leginfo-search"
 remote = true
 
+# D1 – legislative retrieval substrate (optional but preferred for strong AI)
+# If D1 is not provisioned, worker falls back to static corpus via ASSETS + AI Search hybrid
+[[d1_databases]]
+binding = "DB"
+database_name = "leginfo"
+database_id = "leginfo"
+
+[[d1_databases]]
+binding = "LEGAL_DB"
+database_name = "leginfo"
+database_id = "leginfo"
+
 [[durable_objects.bindings]]
 name = "RESEARCH_SESSIONS"
 class_name = "ResearchSession"
@@ -27,3 +41,11 @@ class_name = "ResearchSession"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["ResearchSession"]
+
+[vars]
+AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+AI_FALLBACK_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+AI_RERANKER_MODEL = "@cf/baai/bge-reranker-base"
+RESEARCH_MAX_SECTIONS = "50"
+RESEARCH_MAX_RELATIONSHIPS = "120"
+RESEARCH_MAX_HISTORY = "120"

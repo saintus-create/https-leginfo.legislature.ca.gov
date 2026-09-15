@@ -1,15 +1,255 @@
 ---
-const codes=[['BPC','Business and Professions Code'],['CIV','Civil Code'],['CCP','Code of Civil Procedure'],['COM','Commercial Code'],['CORP','Corporations Code'],['EDC','Education Code'],['ELEC','Elections Code'],['EVID','Evidence Code'],['FAM','Family Code'],['FIN','Financial Code'],['FGC','Fish and Game Code'],['FAC','Food and Agricultural Code'],['GOV','Government Code'],['HNC','Harbors and Navigation Code'],['HSC','Health and Safety Code'],['INS','Insurance Code'],['LAB','Labor Code'],['MVC','Military and Veterans Code'],['PCC','Penal Code'],['PROB','Probate Code'],['PUC','Public Utilities Code'],['RTC','Revenue and Taxation Code'],['SHC','Streets and Highways Code'],['UIC','Unemployment Insurance Code'],['VEH','Vehicle Code'],['WAT','Water Code'],['WIC','Welfare and Institutions Code'],['CONS','California Constitution']];
-const base=import.meta.env.BASE_URL;const publicChat='https://5f679b75-e58c-4cbd-8350-b2c83df8f361.search.ai.cloudflare.com/chat/completions';
+const codes = [
+  ['BPC','Business and Professions Code'],
+  ['CIV','Civil Code'],
+  ['CCP','Code of Civil Procedure'],
+  ['COM','Commercial Code'],
+  ['CORP','Corporations Code'],
+  ['EDC','Education Code'],
+  ['ELEC','Elections Code'],
+  ['EVID','Evidence Code'],
+  ['FAM','Family Code'],
+  ['FIN','Financial Code'],
+  ['FGC','Fish and Game Code'],
+  ['FAC','Food and Agricultural Code'],
+  ['GOV','Government Code'],
+  ['HNC','Harbors and Navigation Code'],
+  ['HSC','Health and Safety Code'],
+  ['INS','Insurance Code'],
+  ['LAB','Labor Code'],
+  ['MVC','Military and Veterans Code'],
+  ['PEN','Penal Code'],
+  ['PROB','Probate Code'],
+  ['PCC','Public Contract Code'],
+  ['PRC','Public Resources Code'],
+  ['PUC','Public Utilities Code'],
+  ['RTC','Revenue and Taxation Code'],
+  ['SHC','Streets and Highways Code'],
+  ['UIC','Unemployment Insurance Code'],
+  ['VEH','Vehicle Code'],
+  ['WAT','Water Code'],
+  ['WIC','Welfare and Institutions Code'],
+  ['CONS','California Constitution'],
+];
+const base = import.meta.env.BASE_URL;
+const publicChat = 'https://5f679b75-e58c-4cbd-8350-b2c83df8f361.search.ai.cloudflare.com/chat/completions';
 ---
-<div class="law-explorer" data-base={base} data-chat={publicChat}><section class="research-panel"><div class="eyebrow">California Legislative Research</div><h2>Ask a legal question</h2><p>Ask in ordinary language. The research engine identifies authorities, compares provisions, follows relationships, and explains the evidence.</p><form data-research-form><input data-research-query type="search" placeholder="What do Family Code and Government Code have in common?" required/><button>Research</button></form><div data-research-status class="status">Ready.</div><article data-research-answer class="answer" hidden></article></section>
-<section><h2>Browse the corpus</h2><p>Exact section and text lookup across all published codes.</p><div class="toolbar"><label>Code<select data-code-select>{codes.map(([a,n])=><option value={a}>{a} — {n}</option>)}</select></label><label>Find<input data-law-query type="search" placeholder="e.g. 300 or custody"/></label></div><div data-law-status class="status">Loading…</div><div data-law-results></div></section></div>
+<div class="law-explorer" data-base={base} data-chat={publicChat}>
+  <section class="research-panel">
+    <div class="eyebrow">AI RESEARCH — STRONGHOLD, NOT WORD MATCH</div>
+    <h2>Ask a legal question</h2>
+    <p>AI orchestrates: intent → citations → semantic retrieval (BM25 + hybrid RRF) → definitions → relationships → history → evidence graph → verification. Every claim traced to LegInfo URL.</p>
+    <form data-research-form>
+      <input data-research-query type="search" placeholder="What do Family Code and Government Code have in common? Or explain GOV § 7921.000" required />
+      <button>Research</button>
+    </form>
+    <div data-research-status class="status">Ready — AI-first research engine</div>
+    <article data-research-answer class="answer" hidden></article>
+  </section>
+
+  <section class="browse-panel">
+    <h2>Browse the corpus</h2>
+    <p>Exact section and text lookup across 30 California codes — deterministic substrate for AI reasoning.</p>
+    <div class="toolbar">
+      <label>Code<select data-code-select>{codes.map(([abbr,name]) => <option value={abbr}>{abbr} — {name}</option>)}</select></label>
+      <label>Find<input data-law-query type="search" placeholder="e.g. 300 or custody or definition" /></label>
+      <label>AI Search<input data-ai-query type="search" placeholder="Semantic search across all codes…" /></label>
+    </div>
+    <div data-law-status class="status">Loading…</div>
+    <div data-ai-results></div>
+    <div data-law-results></div>
+  </section>
+</div>
+
 <script>
-interface Law{uid?:string;kind?:string;section?:string;citation?:string;text?:string;path?:string;history?:string}interface R{answer?:string;state?:{intent?:string;findings?:Array<{citation?:string;lawCode?:string;sectionNum?:string;text?:string}>;unresolved?:string[]}}interface C{choices?:Array<{message?:{content?:string}}>;answer?:string;response?:string}
-const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]??c));document.querySelectorAll<HTMLElement>('.law-explorer').forEach(root=>{const base=(root.dataset.base||'/').replace(/\/?$/,'/'),chat=root.dataset.chat!,form=root.querySelector<HTMLFormElement>('[data-research-form]')!,input=root.querySelector<HTMLInputElement>('[data-research-query]')!,status=root.querySelector<HTMLElement>('[data-research-status]')!,answer=root.querySelector<HTMLElement>('[data-research-answer]')!,select=root.querySelector<HTMLSelectElement>('[data-code-select]')!,q=root.querySelector<HTMLInputElement>('[data-law-query]')!,ls=root.querySelector<HTMLElement>('[data-law-status]')!,lr=root.querySelector<HTMLElement>('[data-law-results]')!;let records:Law[]=[];
-function renderAnswer(d:R){answer.innerHTML=`<div class="answer-text">${esc(d.answer||'No generated answer returned.')}</div>${d.state?.findings?.length?`<details><summary>Evidence (${d.state.findings.length})</summary>${d.state.findings.slice(0,30).map(x=>`<div class="evidence"><strong>${esc(x.citation||`${x.lawCode||''} § ${x.sectionNum||''}`)}</strong><div>${esc(x.text)}</div></div>`).join('')}</details>`:''}${d.state?.unresolved?.length?`<details><summary>Limits</summary>${d.state.unresolved.map(x=>`<div>${esc(x)}</div>`).join('')}</details>`:''}`;answer.hidden=false;status.textContent=`Research complete · ${d.state?.intent||'research'}`}
-async function research(text:string){status.textContent='Researching…';answer.hidden=true;try{const r=await fetch('/api/research',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:text})});if(r.ok){renderAnswer(await r.json() as R);return}const x=await fetch(chat,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:text}]})});if(!x.ok)throw Error(`AI Search HTTP ${x.status}`);const d=await x.json() as C;renderAnswer({answer:d.choices?.[0]?.message?.content||d.answer||d.response||'',state:{intent:'ai-search'}})}catch(e){status.textContent=`Research unavailable: ${e instanceof Error?e.message:String(e)}`}}
-function render(){const x=q.value.trim().toLowerCase(),m=x?records.filter(r=>`${r.section||''} ${r.citation||''} ${r.text||''} ${r.path||''}`.toLowerCase().includes(x)):records;ls.textContent=`${m.length.toLocaleString()} matching sections.`;lr.innerHTML=m.slice(0,100).map(r=>`<article class="law-section"><strong>${esc(r.citation||r.section)}</strong>${r.path?`<div class="path">${esc(r.path)}</div>`:''}<div class="law-text">${esc(r.text||'')}</div>${r.history?`<details><summary>History</summary>${esc(r.history)}</details>`:''}</article>`).join('')}
-async function load(code:string){records=[];lr.innerHTML='';ls.textContent=`Loading ${code}…`;try{const m=await (await fetch(`${base}data/law/manifest.json`)).json() as Record<string,string[]>;const chunks=m[code];if(!chunks?.length)throw Error(`No ${code} data`);const rr=await Promise.all(chunks.map(c=>fetch(`${base}data/law/${encodeURIComponent(c)}`)));const text=(await Promise.all(rr.map(x=>x.text()))).join('');records=text.split('\n').filter(Boolean).map(x=>JSON.parse(x) as Law).filter(x=>x.kind==='section');render()}catch(e){ls.textContent=`Could not load ${code}: ${e instanceof Error?e.message:String(e)}`}}form.addEventListener('submit',e=>{e.preventDefault();const x=input.value.trim();if(x)research(x)});select.addEventListener('change',()=>load(select.value));q.addEventListener('input',render);load(select.value)});
+interface Law { uid?: string; kind?: string; section?: string; citation?: string; text?: string; path?: string; history?: string; title?: string }
+interface Citation { label: string; url: string; lawCode: string; sectionNum: string }
+interface Finding { uid: string; citation: Citation | string; lawCode: string; sectionNum: string; text: string; title?: string; relevance: number; matchType: string }
+interface Relationship { sourceUid: string; targetUid?: string; relationship: string; referenceText?: string }
+interface ResearchState { intent?: string; codes?: string[]; findings?: Finding[]; relationships?: Relationship[]; history?: any[]; unresolved?: string[]; methods?: string[]; provenance?: any }
+interface AnswerResponse { answer?: string; state?: ResearchState; evidence?: any; ok?: boolean }
+
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
+
+document.querySelectorAll<HTMLElement>('.law-explorer').forEach(root => {
+  const base = (root.dataset.base || '/').replace(/\/?$/, '/');
+  const chat = root.dataset.chat!;
+  const form = root.querySelector<HTMLFormElement>('[data-research-form]')!;
+  const input = root.querySelector<HTMLInputElement>('[data-research-query]')!;
+  const status = root.querySelector<HTMLElement>('[data-research-status]')!;
+  const answerEl = root.querySelector<HTMLElement>('[data-research-answer]')!;
+  const select = root.querySelector<HTMLSelectElement>('[data-code-select]')!;
+  const q = root.querySelector<HTMLInputElement>('[data-law-query]')!;
+  const aiQ = root.querySelector<HTMLInputElement>('[data-ai-query]')!;
+  const ls = root.querySelector<HTMLElement>('[data-law-status]')!;
+  const lr = root.querySelector<HTMLElement>('[data-law-results]')!;
+  const aiR = root.querySelector<HTMLElement>('[data-ai-results]')!;
+
+  let records: Law[] = [];
+  let aiTimeout: number | undefined;
+
+  function renderAnswer(d: AnswerResponse) {
+    const state = d.state;
+    const findings = state?.findings || [];
+    const rels = state?.relationships || [];
+    const unresolved = state?.unresolved || [];
+    const methods = state?.methods || [];
+
+    answerEl.innerHTML = `
+      <div class="answer-header">
+        <span class="badge">${esc(state?.intent || 'synthesis')}</span>
+        <span class="meta">${esc(methods.slice(0,4).join(' · '))}</span>
+        <span class="meta">${findings.length} provisions · ${state?.provenance?.durationMs || 0}ms</span>
+      </div>
+      <div class="answer-text">${esc(d.answer || 'No generated answer returned.')}</div>
+      ${findings.length ? `<details open><summary>Evidence — ${findings.length} provisions</summary>${findings.slice(0, 20).map(f => {
+        const cit = typeof f.citation === 'string' ? { label: f.citation, url: '#', lawCode: f.lawCode, sectionNum: f.sectionNum } : f.citation as Citation;
+        return `<div class="evidence"><strong><a href="${esc(cit.url)}" target="_blank" rel="noopener">${esc(cit.label)}</a></strong>${f.title ? ` — ${esc(f.title)}` : ''}<div class="ev-text">${esc(f.text.slice(0, 800))}${f.text.length > 800 ? '…' : ''}</div><div class="ev-meta">${esc(f.matchType)} · ${f.relevance.toFixed(2)}</div></div>`;
+      }).join('')}</details>` : ''}
+      ${rels.length ? `<details><summary>Connections — ${rels.length}</summary>${rels.slice(0, 20).map(r => `<div class="rel"><code>${esc(r.sourceUid)}</code> —${esc(r.relationship)}→ <code>${esc(r.targetUid || '')}</code> ${r.referenceText ? `<span>${esc(r.referenceText)}</span>` : ''}</div>`).join('')}</details>` : ''}
+      ${unresolved.length ? `<details><summary>Limits — ${unresolved.length}</summary>${unresolved.map(u => `<div class="unresolved">${esc(u)}</div>`).join('')}</details>` : ''}
+    `;
+    answerEl.hidden = false;
+    status.textContent = `Research complete — ${state?.intent || 'research'} · ${findings.length} provisions · ${methods.slice(0,3).join(', ')}`;
+    answerEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function research(text: string) {
+    status.textContent = 'Orchestrating — intent, citations, temporal scope, adaptive plan…';
+    answerEl.hidden = true;
+    try {
+      // Strong AI path: /api/answer
+      const r = await fetch('/api/answer', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query: text, stream: false })
+      });
+      if (r.ok) {
+        const data = await r.json() as AnswerResponse;
+        if (data.answer) { renderAnswer(data); return; }
+      }
+      // Fallback: /api/research
+      const r2 = await fetch('/api/research', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query: text })
+      });
+      if (r2.ok) {
+        const data = await r2.json() as any;
+        const fallback = `Evidence-only synthesis (AI generation unavailable): Retrieved ${data.state.findings.length} provisions for "${text}".
+
+${data.state.findings.slice(0,5).map((f:any) => `- ${typeof f.citation === 'string' ? f.citation : f.citation.label}: ${f.title || ''}`).join('\n')}
+
+Methods: ${data.state.methods.join(', ')}
+`;
+        renderAnswer({ answer: fallback, state: data.state });
+        return;
+      }
+      // Final fallback: direct chat
+      status.textContent = 'APIs unavailable — direct AI Search…';
+      const x = await fetch(chat, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: text }] })
+      });
+      if (!x.ok) throw Error(`AI Search HTTP ${x.status}`);
+      const d = await x.json() as { choices?: Array<{ message?: { content?: string } }>; answer?: string; response?: string };
+      renderAnswer({ answer: d.choices?.[0]?.message?.content || d.answer || d.response || '', state: { intent: 'ai-search', findings: [] } });
+    } catch (e) {
+      status.textContent = `Research unavailable: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+
+  function renderBrowse() {
+    const needle = q.value.trim().toLowerCase();
+    const filtered = needle ? records.filter(r => `${r.section || ''} ${r.citation || ''} ${r.text || ''} ${r.path || ''} ${r.title || ''}`.toLowerCase().includes(needle)) : records;
+    ls.textContent = `${filtered.length.toLocaleString()} matching sections in ${select.value} — deterministic corpus, not AI-generated.`;
+    lr.innerHTML = filtered.slice(0, 120).map(r => `<article class="law-section"><strong><a href="https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=${encodeURIComponent(r.section || '')}.&lawCode=${select.value}" target="_blank" rel="noopener">${esc(r.citation || r.section || r.uid || '')}</a></strong>${r.title ? `<div class="title">${esc(r.title)}</div>` : ''}${r.path ? `<div class="path">${esc(r.path)}</div>` : ''}<div class="law-text">${esc(r.text || '')}</div>${r.history ? `<details><summary>History</summary>${esc(r.history)}</details>` : ''}</article>`).join('');
+  }
+
+  async function aiSearch(query: string) {
+    if (!query.trim()) { aiR.innerHTML = ''; return; }
+    aiR.innerHTML = `<div class="status">AI searching — hybrid BM25 + semantic + RRF…</div>`;
+    try {
+      const r = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query, limit: 12 })
+      });
+      if (!r.ok) throw Error(`HTTP ${r.status}`);
+      const data = await r.json() as { results: Finding[]; retrieval: { methods: string[]; queryRewrite?: string[] } };
+      aiR.innerHTML = `<div class="ai-results-header">AI Search — ${data.results.length} results · ${esc(data.retrieval.methods.join(', '))}${data.retrieval.queryRewrite ? ` · rewrites: ${esc(data.retrieval.queryRewrite.slice(0,3).join(', '))}` : ''}</div>` + data.results.map(f => {
+        const cit = typeof f.citation === 'string' ? { label: f.citation, url: '#', lawCode: f.lawCode, sectionNum: f.sectionNum } : f.citation as Citation;
+        return `<article class="law-section ai-hit"><strong><a href="${esc(cit.url)}" target="_blank">${esc(cit.label)}</a></strong><div class="ev-meta">${esc(f.matchType)} · ${f.relevance.toFixed(2)}</div><div class="law-text">${esc(f.text.slice(0, 700))}${f.text.length > 700 ? '…' : ''}</div></article>`;
+      }).join('');
+    } catch (e) {
+      aiR.innerHTML = `<div class="status">AI search failed: ${esc(e instanceof Error ? e.message : String(e))}</div>`;
+    }
+  }
+
+  async function load(code: string) {
+    records = [];
+    lr.innerHTML = '';
+    aiR.innerHTML = '';
+    ls.textContent = `Loading ${code}… — streaming JSONL corpus`;
+    try {
+      const manifest = await (await fetch(`${base}data/law/manifest.json`)).json() as Record<string, string[]>;
+      const chunks = manifest[code];
+      if (!chunks?.length) throw Error(`No ${code} data`);
+      const responses = await Promise.all(chunks.map(c => fetch(`${base}data/law/${encodeURIComponent(c)}`)));
+      const texts = await Promise.all(responses.map(r => r.text()));
+      const all = texts.join('');
+      records = all.split('\n').filter(Boolean).map(x => { try { return JSON.parse(x) as Law; } catch { return null; } }).filter((x): x is Law => !!x && x.kind === 'section');
+      renderBrowse();
+    } catch (e) {
+      ls.textContent = `Could not load ${code}: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+
+  form.addEventListener('submit', e => { e.preventDefault(); const x = input.value.trim(); if (x) research(x); });
+  select.addEventListener('change', () => load(select.value));
+  q.addEventListener('input', renderBrowse);
+  aiQ.addEventListener('input', () => {
+    if (aiTimeout) clearTimeout(aiTimeout);
+    aiTimeout = window.setTimeout(() => aiSearch(aiQ.value), 400) as any;
+  });
+
+  load(select.value);
+});
 </script>
-<style>.research-panel{padding:1.5rem 1.25rem 2rem;margin-bottom:2rem;background:color-mix(in srgb,var(--sl-color-accent-low) 28%,var(--sl-color-bg));border-radius:.8rem}.eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sl-color-text-accent)}.research-panel h2{margin:.25rem 0}.research-panel form{display:flex;gap:.6rem}.research-panel input{flex:1;min-width:0}.research-panel input,.research-panel button,.toolbar input,.toolbar select{padding:.7rem .8rem;border:0;border-radius:.4rem;background:var(--sl-color-bg);color:var(--sl-color-text);font:inherit}.research-panel button{background:var(--sl-color-accent);color:var(--sl-color-white);font-weight:700}.status{margin:.8rem 0;color:var(--sl-color-gray-2);font-size:.9rem}.answer-text{white-space:pre-wrap;line-height:1.7;margin:1rem 0}.evidence{border-top:1px solid var(--sl-color-gray-5);padding:.8rem 0}.evidence strong{color:var(--sl-color-text-accent)}.toolbar{display:grid;grid-template-columns:12rem 1fr;gap:1rem;margin:1.25rem 0}.toolbar label{display:grid;gap:.4rem;font-size:.8rem;font-weight:600}.law-section{border-top:1px solid var(--sl-color-gray-5);padding:1.2rem 0}.law-text{white-space:pre-wrap;line-height:1.65;margin-top:.5rem}.path{font-size:.8rem;color:var(--sl-color-gray-2)}@media(max-width:700px){.research-panel form,.toolbar{display:flex;flex-direction:column}}</style>
+
+<style>
+.research-panel{padding:1.7rem 1.4rem 2.2rem;margin-bottom:2.2rem;background:linear-gradient(135deg,color-mix(in srgb,var(--sl-color-accent-low) 34%,var(--sl-color-bg)),transparent 65%);border-radius:.9rem;border:1px solid color-mix(in srgb,var(--sl-color-accent) 14%,transparent)}
+.eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--sl-color-text-accent)}
+.research-panel h2{margin:.3rem 0 .4rem;font-size:clamp(1.5rem,2.6vw,2rem)}
+.research-panel p{opacity:.8;line-height:1.6;margin:.2rem 0 1rem;max-width:65rem}
+.research-panel form{display:flex;gap:.65rem}
+.research-panel input{flex:1;min-width:0}
+.research-panel input,.research-panel button,.toolbar input,.toolbar select{padding:.78rem .9rem;border:0;border-radius:.5rem;background:var(--sl-color-bg);color:var(--sl-color-text);font:inherit;box-shadow:0 6px 22px color-mix(in srgb,#000 10%,transparent)}
+.research-panel button{background:var(--sl-color-accent);color:var(--sl-color-white);font-weight:800}
+.status{margin:.9rem 0;color:var(--sl-color-gray-2);font-size:.92rem}
+.answer{margin-top:1rem}
+.answer-header{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
+.badge{background:var(--sl-color-accent);color:var(--sl-color-white);padding:.25rem .6rem;border-radius:.35rem;font-size:.75rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.meta{font-size:.82rem;opacity:.7}
+.answer-text{white-space:pre-wrap;line-height:1.75;margin:1rem 0;padding:1rem 1.1rem;background:color-mix(in srgb,var(--sl-color-bg) 80%,var(--sl-color-accent-low));border-radius:.6rem}
+.evidence{border-top:1px solid var(--sl-color-gray-5);padding:.9rem 0}
+.evidence a{color:var(--sl-color-text-accent);text-decoration:none}
+.evidence a:hover{text-decoration:underline}
+.ev-text{white-space:pre-wrap;margin:.45rem 0;line-height:1.6}
+.ev-meta{font-size:.78rem;opacity:.6}
+.rel{padding:.45rem .6rem;margin:.3rem 0;background:color-mix(in srgb,var(--sl-color-bg) 70%,var(--sl-color-gray-6));border-radius:.4rem;font-size:.88rem}
+.unresolved{padding:.3rem 0;opacity:.85}
+.browse-panel h2{margin:1.5rem 0 .3rem}
+.toolbar{display:grid;grid-template-columns:12rem 1fr 1fr;gap:1rem;margin:1.2rem 0}
+.toolbar label{display:grid;gap:.45rem;font-size:.82rem;font-weight:600}
+.law-section{border-top:1px solid var(--sl-color-gray-5);padding:1.25rem 0}
+.law-section a{color:var(--sl-color-text-accent);text-decoration:none}
+.law-section a:hover{text-decoration:underline}
+.law-text{white-space:pre-wrap;line-height:1.68;margin-top:.55rem}
+.path{font-size:.82rem;color:var(--sl-color-gray-2);margin-top:.2rem}
+.title{font-size:.9rem;opacity:.75;margin-top:.15rem}
+.ai-results-header{font-size:.85rem;opacity:.75;margin:.8rem 0;padding:.6rem .8rem;background:color-mix(in srgb,var(--sl-color-accent-low) 40%,var(--sl-color-bg));border-radius:.5rem}
+.ai-hit{border-left:3px solid var(--sl-color-accent);padding-left:1rem}
+@media(max-width:900px){.toolbar{grid-template-columns:1fr}.research-panel form{flex-direction:column}}
+</style>

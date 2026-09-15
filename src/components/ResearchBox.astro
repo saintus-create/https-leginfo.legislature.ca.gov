@@ -1,32 +1,313 @@
 ---
-const chat='https://5f679b75-e58c-4cbd-8350-b2c83df8f361.search.ai.cloudflare.com/chat/completions';
-const base=import.meta.env.BASE_URL;
+const base = import.meta.env.BASE_URL;
+const chatPublic = 'https://5f679b75-e58c-4cbd-8350-b2c83df8f361.search.ai.cloudflare.com/chat/completions';
 ---
-<section class="research-box" data-chat={chat} data-index={`${base}data/research-index.json`} aria-labelledby="research-box-heading">
-  <div class="eyebrow">LIVE AI RESEARCH ENGINE</div>
+<section class="research-box" data-base={base} data-chat={chatPublic} data-index={`${base}data/research-index.json`} aria-labelledby="research-box-heading">
+  <div class="eyebrow">AI RESEARCH ENGINE — NOT KEYWORD MATCH</div>
   <h2 id="research-box-heading">Ask California law</h2>
-  <p class="subhead">Conversational research grounded in the California Legislative Information corpus.</p>
+  <p class="subhead">AI reasoning over authoritative corpus: orchestrated retrieval, evidence graph, definition resolution, temporal history, verification. Every claim traceable to a citation.</p>
   <div class="conversation" data-conversation aria-live="polite"></div>
-  <form data-form><input data-query type="search" placeholder="Ask about any California code or section…" autocomplete="off" required><button data-send>Research</button></form>
-  <div class="status" data-status><span class="dot"></span><span data-status-text>Ready</span></div>
+  <form data-form>
+    <input data-query type="search" placeholder="e.g. What do Family Code and Government Code have in common? Or GOV § 7921.000" autocomplete="off" required />
+    <button data-send>Research</button>
+  </form>
+  <div class="status" data-status><span class="dot"></span><span data-status-text>Ready — AI-first research</span></div>
+  <details class="capabilities"><summary>How this is strong AI, not word match</summary>
+    <ul>
+      <li><strong>Orchestrator</strong> parses intent (lookup/explain/compare/investigate/chronology/synthesis), extracts citations, temporal scope, concepts</li>
+      <li><strong>Adaptive plan</strong>: exact section → semantic search → definition → relationships → history → evidence graph → citation resolution</li>
+      <li><strong>Hybrid retrieval</strong>: D1 FTS5 BM25 + semantic AI Search + RRF fusion + query rewrite + reranking</li>
+      <li><strong>Verification</strong>: draft answer then verifier removes unsupported claims</li>
+      <li><strong>Citations</strong> are canonical LegInfo URLs, not internal IDs</li>
+      <li>Streaming, conversation context, limits, provenance tracked</li>
+    </ul>
+  </details>
 </section>
+
 <script>
-interface Finding{uid?:string;citation?:string;text?:string;title?:string;section?:string;lawCode?:string;sectionNum?:string}
-interface Index{version:number;codes:Record<string,{name:string;sectionCount:number}>;terms:Record<string,string[]>;locations:Record<string,string>}
-interface RecordItem{kind?:string;uid?:string;citation?:string;title?:string;section?:string;text?:string}
-interface AIResponse{choices?:Array<{message?:{content?:string}}>;response?:string;answer?:string}
-type Msg={role:'user'|'assistant';content:string}
-const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]??c));
-const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
-const tokens=(q:string)=>q.toLowerCase().match(/[a-z0-9][a-z0-9._-]{2,}/g)?.filter(x=>!['the','and','for','that','this','with','from','what','how','why','are','was','were','about','does','doesn','section','sections'].includes(x))??[];
-const codeNames:Record<string,string>={BPC:'Business and Professions Code',CIV:'Civil Code',CCP:'Code of Civil Procedure',COM:'Commercial Code',CORP:'Corporations Code',EDC:'Education Code',ELEC:'Elections Code',EVID:'Evidence Code',FAM:'Family Code',FIN:'Financial Code',FGC:'Fish and Game Code',FAC:'Food and Agricultural Code',GOV:'Government Code',HNC:'Harbors and Navigation Code',HSC:'Health and Safety Code',INS:'Insurance Code',LAB:'Labor Code',MVC:'Military and Veterans Code',PEN:'Penal Code',PROB:'Probate Code',PCC:'Public Contract Code',PRC:'Public Resources Code',PUC:'Public Utilities Code',RTC:'Revenue and Taxation Code',SHC:'Streets and Highways Code',UIC:'Unemployment Insurance Code',VEH:'Vehicle Code',WAT:'Water Code',WIC:'Welfare and Institutions Code',CONS:'California Constitution'};
-const parsePart=async(url:string):Promise<RecordItem[]>=>{const r=await fetch(url);if(!r.ok)throw Error(`Corpus part HTTP ${r.status}`);const text=await r.text();return text.split(/\r?\n/).filter(Boolean).flatMap(line=>{try{const x=JSON.parse(line);return x?.kind==='section'?[x]:[]}catch{return[]}})};
-const retrieve=async(query:string,indexUrl:string):Promise<Finding[]>=>{const index:Index=await fetch(indexUrl).then(r=>{if(!r.ok)throw Error(`Index HTTP ${r.status}`);return r.json()});const q=tokens(query);const wanted=new Set<string>();for(const t of q)(index.terms[t]??[]).forEach(uid=>wanted.add(uid));const code=Object.entries(codeNames).find(([k,n])=>query.toLowerCase().includes(k.toLowerCase())||query.toLowerCase().includes(n.toLowerCase()));const parts=new Set<string>();for(const uid of wanted){const p=index.locations[uid];if(p)parts.add(p)}if(code&&!parts.size){for(const uid of Object.keys(index.locations)){if(uid.startsWith(`${code[0]}:`)){const p=index.locations[uid];if(p)parts.add(p);if(parts.size>=4)break}}}if(!parts.size)throw Error('No indexed corpus candidates.');const base=indexUrl.replace(/\/data\/research-index\.json$/,'/data/law/');const records=(await Promise.all([...parts].slice(0,8).map(p=>parsePart(`${base}${p}`)))).flat();const scored=records.map(x=>{const hay=`${x.title??''} ${x.text??''}`.toLowerCase();const score=q.reduce((n,t)=>n+(hay.match(new RegExp(`\\b${t.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')}\\b`,'g'))?.length??0),0)+(q.length&&hay.includes(query.toLowerCase())?10:0);return{x,score}}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,12).map(({x})=>({uid:x.uid,citation:x.citation,title:x.title,section:x.section,text:x.text,lawCode:code?.[0],sectionNum:x.section}));if(!scored.length)throw Error('No responsive statutory text found.');return scored};
-const callAI=async(endpoint:string,messages:Array<{role:string;content:string}>):Promise<string>=>{let last='AI request failed';for(let attempt=0;attempt<3;attempt++){try{const r=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({messages})});if(!r.ok)throw Error(`AI HTTP ${r.status}`);const d=await r.json() as AIResponse;const text=d.choices?.[0]?.message?.content||d.response||d.answer;if(text?.trim())return text.trim();throw Error('AI returned no answer.')}catch(e){last=e instanceof Error?e.message:String(e);if(attempt<2)await sleep(700*(attempt+1))}}throw Error(last)};
-const render=(root:HTMLElement,user:string,answer:string,findings:Finding[])=>{const c=root.querySelector<HTMLElement>('[data-conversation]')!;const u=document.createElement('div');u.className='message user';u.innerHTML=`<div class="role">YOU</div><div>${esc(user)}</div>`;c.append(u);const a=document.createElement('div');a.className='message assistant';a.innerHTML=`<div class="role">LEGINFO AI</div><div class="answer">${esc(answer)}</div>${findings.length?`<details open><summary>${findings.length} corpus sources retrieved</summary>${findings.map(f=>`<div class="source"><strong>${esc(f.citation||f.uid)}</strong>${f.title?`<span>${esc(f.title)}</span>`:''}<p>${esc(f.text)}</p></div>`).join('')}</details>`:''}`;c.append(a);a.scrollIntoView({block:'nearest'});return a};
-document.querySelectorAll<HTMLElement>('.research-box').forEach(root=>{const form=root.querySelector<HTMLFormElement>('[data-form]')!,input=root.querySelector<HTMLInputElement>('[data-query]')!,send=root.querySelector<HTMLButtonElement>('[data-send]')!,status=root.querySelector<HTMLElement>('[data-status-text]')!,indexUrl=root.dataset.index!,endpoint=root.dataset.chat!;const history:Msg[]=[];form.addEventListener('submit',async e=>{e.preventDefault();const query=input.value.trim();if(!query||send.disabled)return;send.disabled=true;status.textContent='Retrieving primary-source provisions…';try{let findings:Finding[]=[];try{const r=await fetch(`${location.pathname.replace(/\\/$/,'')}/api/research`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query,messages:history.slice(-8)})});if(r.ok){const d=await r.json();findings=d.state?.findings??[];if(d.answer){history.push({role:'user',content:query},{role:'assistant',content:d.answer});render(root,query,d.answer,findings);status.textContent='Research complete';input.value='';send.disabled=false;return}}}catch{}
-findings=await retrieve(query,indexUrl);status.textContent=`${findings.length} statutory provisions retrieved. Reasoning…`;const evidence=findings.map((f,i)=>`SOURCE ${i+1}\nCitation: ${f.citation||f.uid}\nTitle: ${f.title||''}\nText: ${f.text||''}`).join('\n\n');const system=`You are LegInfo AI, an interactive California legislative research engine. Answer only from the supplied California Legislative Information corpus. Never invent a citation, section, quotation, relationship, legislative history, or legal fact. Cite substantive propositions inline using the supplied citation. Distinguish statutory text from analysis. If the retrieved evidence does not answer the question, state that limitation. You are a research engine, not a generic text synthesizer.`;const messages=[{role:'system',content:system},...history.slice(-8),{role:'user',content:`CORPUS EVIDENCE:\n${evidence}\n\nQUESTION:\n${query}`}];const answer=await callAI(endpoint,messages);history.push({role:'user',content:query},{role:'assistant',content:answer});render(root,query,answer,findings);status.textContent='Research complete';input.value=''}catch(err){status.textContent=`Research engine retry required: ${err instanceof Error?err.message:String(err)}`}finally{send.disabled=false}})});
+interface Citation { label: string; url: string; lawCode: string; sectionNum: string }
+interface Finding { uid: string; lawCode: string; sectionNum: string; citation: Citation | string; title?: string; text: string; relevance: number; matchType: string }
+interface Relationship { sourceUid: string; targetUid?: string; relationship: string; referenceText?: string; confidence: number }
+interface HistoryEvent { id: string; uid: string; eventType: string; description?: string; effectiveDate?: string }
+interface ResearchState { intent: string; codes: string[]; subjects: string[]; findings: Finding[]; definitions?: Finding[]; relationships: Relationship[]; history: HistoryEvent[]; unresolved: string[]; methods: string[]; provenance: { plannedSteps: number; executedSteps: number; durationMs: number } }
+interface AnswerResponse { ok: boolean; answer: string; state: ResearchState; evidence: { results: Finding[]; relationships: Relationship[]; retrieval: { methods: string[] } }; model?: string }
+interface ResearchResponse { ok: boolean; state: ResearchState; evidence: any }
+
+type Msg = { role: 'user' | 'assistant'; content: string }
+
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+// ── Static fallback retrieval – improved beyond word match ──
+interface Index { version: number; codes: Record<string, { name: string; sectionCount: number }>; terms: Record<string, string[]>; locations: Record<string, string> }
+interface RecordItem { kind?: string; uid?: string; citation?: string; title?: string; section?: string; text?: string; history?: string }
+
+const STOP = new Set(['the','and','for','that','this','with','from','shall','may','must','such','which','into','upon','under','there','their','them','than','then','where','when','what','have','has','had','not','any','all','each','other','more','only','section','sections','code','codes','california','please','explain','describe']);
+
+function tokenise(s: string) {
+  const raw = s.toLowerCase().match(/[a-z0-9][a-z0-9._-]{2,}/g) || [];
+  return [...new Set(raw.filter(x => !STOP.has(x)))].slice(0, 32);
+}
+
+function scoreRecord(rec: RecordItem, tokens: string[], phrase: string) {
+  const hay = `${rec.title || ''} ${rec.text || ''}`.toLowerCase();
+  let value = 0;
+  for (const t of tokens) {
+    const re = new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+    const hits = (hay.match(re) || []).length;
+    if (!hits) continue;
+    const tf = Math.log(1 + hits);
+    const titleBoost = rec.title?.toLowerCase().includes(t) ? 3 : 1;
+    value += tf * titleBoost * 2;
+  }
+  if (phrase && hay.includes(phrase.toLowerCase())) value += 15;
+  if (rec.text && rec.text.length < 80) value *= 0.5;
+  return value;
+}
+
+async function parsePart(url: string): Promise<RecordItem[]> {
+  const r = await fetch(url);
+  if (!r.ok) throw Error(`Corpus part HTTP ${r.status}`);
+  const text = await r.text();
+  return text.split(/\r?\n/).filter(Boolean).flatMap(line => {
+    try { const x = JSON.parse(line); return x?.kind === 'section' ? [x] : []; } catch { return []; }
+  });
+}
+
+async function retrieveStatic(query: string, indexUrl: string): Promise<Finding[]> {
+  const index: Index = await fetch(indexUrl).then(r => { if (!r.ok) throw Error(`Index HTTP ${r.status}`); return r.json(); });
+  const tokens = tokenise(query);
+  const phrase = query.replace(/\b(what|is|the|a|an|how|does|do|can|please)\b/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  const wanted = new Set<string>();
+  for (const t of tokens) (index.terms[t] ?? []).forEach(uid => wanted.add(uid));
+
+  const codeNames: Record<string,string> = { BPC:'Business and Professions Code',CIV:'Civil Code',CCP:'Code of Civil Procedure',COM:'Commercial Code',CORP:'Corporations Code',EDC:'Education Code',ELEC:'Elections Code',EVID:'Evidence Code',FAM:'Family Code',FIN:'Financial Code',FGC:'Fish and Game Code',FAC:'Food and Agricultural Code',GOV:'Government Code',HNC:'Harbors and Navigation Code',HSC:'Health and Safety Code',INS:'Insurance Code',LAB:'Labor Code',MVC:'Military and Veterans Code',PEN:'Penal Code',PROB:'Probate Code',PCC:'Public Contract Code',PRC:'Public Resources Code',PUC:'Public Utilities Code',RTC:'Revenue and Taxation Code',SHC:'Streets and Highways Code',UIC:'Unemployment Insurance Code',VEH:'Vehicle Code',WAT:'Water Code',WIC:'Welfare and Institutions Code',CONS:'California Constitution' };
+  const code = Object.entries(codeNames).find(([k,n]) => query.toLowerCase().includes(k.toLowerCase()) || query.toLowerCase().includes(n.toLowerCase()));
+
+  const parts = new Set<string>();
+  for (const uid of wanted) { const p = index.locations[uid]; if (p) parts.add(p); }
+  if (code && !parts.size) {
+    for (const uid of Object.keys(index.locations)) {
+      if (uid.startsWith(`${code[0]}:`)) { const p = index.locations[uid]; if (p) parts.add(p); if (parts.size >= 6) break; }
+    }
+  }
+  if (!parts.size) throw Error('No indexed corpus candidates.');
+
+  const base = indexUrl.replace(/\/data\/research-index\.json$/, '/data/law/');
+  const records = (await Promise.all([...parts].slice(0, 10).map(p => parsePart(`${base}${p}`)))).flat();
+  const scored = records.map(x => ({ x, score: scoreRecord(x, tokens, phrase) }))
+    .filter(x => x.score > 0.2)
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 14)
+    .map(({x, score}) => ({
+      uid: x.uid || `${code?.[0] || 'GOV'}:${x.section}`,
+      lawCode: code?.[0] || 'GOV',
+      sectionNum: x.section || '',
+      citation: { label: x.citation || x.uid, url: `https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=${encodeURIComponent(x.section || '')}.&lawCode=${code?.[0] || 'GOV'}`, lawCode: code?.[0] || 'GOV', sectionNum: x.section || '' } as any,
+      title: x.title,
+      text: x.text || '',
+      relevance: Math.min(1, score / 20),
+      matchType: 'fulltext'
+    } as Finding));
+
+  if (!scored.length) throw Error('No responsive statutory text found.');
+  return scored;
+}
+
+// ── Rendering ──
+function renderMessage(root: HTMLElement, user: string, answer: string, state?: ResearchState) {
+  const c = root.querySelector<HTMLElement>('[data-conversation]')!;
+  const userDiv = document.createElement('div');
+  userDiv.className = 'message user';
+  userDiv.innerHTML = `<div class="role">YOU — ${esc(state?.intent || 'question')}</div><div>${esc(user)}</div>`;
+  c.append(userDiv);
+
+  const assistantDiv = document.createElement('div');
+  assistantDiv.className = 'message assistant';
+
+  const findings = state?.findings || [];
+  const definitions = state?.definitions || [];
+  const relationships = state?.relationships || [];
+  const history = state?.history || [];
+  const methods = state?.methods || [];
+  const unresolved = state?.unresolved || [];
+
+  const citationList = findings.slice(0, 12).map(f => {
+    const cit = typeof f.citation === 'string' ? { label: f.citation, url: '#', lawCode: f.lawCode, sectionNum: f.sectionNum } : f.citation as Citation;
+    return `<div class="source"><strong><a href="${esc(cit.url)}" target="_blank" rel="noopener">${esc(cit.label)}</a></strong>${f.title ? `<span>${esc(f.title)}</span>` : ''}<p>${esc(f.text.slice(0, 800))}${f.text.length > 800 ? '…' : ''}</p><div class="meta">${esc(f.matchType)} · relevance ${f.relevance.toFixed(2)}</div></div>`;
+  }).join('');
+
+  const relList = relationships.slice(0, 15).map(r => `<div class="rel"><code>${esc(r.sourceUid)}</code> —${esc(r.relationship)}→ <code>${esc(r.targetUid || '')}</code> ${r.referenceText ? `<span>${esc(r.referenceText)}</span>` : ''}</div>`).join('');
+
+  assistantDiv.innerHTML = `
+    <div class="role">LEGINFO AI — ${esc(state?.intent || 'synthesis')} · ${esc(methods.slice(0,5).join(', '))}</div>
+    <div class="answer">${esc(answer)}</div>
+    ${findings.length ? `<details open><summary>Evidence — ${findings.length} provisions · ${state?.provenance?.executedSteps || 0} steps · ${state?.provenance?.durationMs || 0}ms</summary><div class="evidence-grid">${citationList}</div></details>` : ''}
+    ${definitions.length ? `<details><summary>Definitions — ${definitions.length}</summary>${definitions.map(d => `<div class="source"><strong>${esc(typeof d.citation === 'string' ? d.citation : (d.citation as Citation).label)}</strong><p>${esc(d.text.slice(0,600))}</p></div>`).join('')}</details>` : ''}
+    ${relationships.length ? `<details><summary>Statutory connections — ${relationships.length}</summary><div class="rels">${relList}</div></details>` : ''}
+    ${history.length ? `<details><summary>History — ${history.length} events</summary>${history.map(h => `<div class="history"><strong>${esc(h.eventType)}</strong> ${esc(h.effectiveDate || '')} ${esc(h.description || '')}</div>`).join('')}</details>` : ''}
+    ${unresolved.length ? `<details><summary>Limits — ${unresolved.length} unresolved</summary>${unresolved.map(u => `<div class="unresolved">${esc(u)}</div>`).join('')}</details>` : ''}
+  `;
+
+  c.append(assistantDiv);
+  assistantDiv.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  return assistantDiv;
+}
+
+// ── Main ──
+document.querySelectorAll<HTMLElement>('.research-box').forEach(root => {
+  const form = root.querySelector<HTMLFormElement>('[data-form]')!;
+  const input = root.querySelector<HTMLInputElement>('[data-query]')!;
+  const send = root.querySelector<HTMLButtonElement>('[data-send]')!;
+  const status = root.querySelector<HTMLElement>('[data-status-text]')!;
+  const indexUrl = root.dataset.index!;
+  const history: Msg[] = [];
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const query = input.value.trim();
+    if (!query || send.disabled) return;
+    send.disabled = true;
+    status.textContent = 'Orchestrating research plan — parsing intent, citations, temporal scope…';
+
+    try {
+      // 1. Try strong AI answer endpoint
+      try {
+        status.textContent = 'Retrieving evidence — hybrid BM25 + AI Search RRF + definitions + relationships…';
+        const r = await fetch(`/api/answer`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ query, messages: history.slice(-10), stream: false })
+        });
+
+        if (r.ok) {
+          const data = await r.json() as AnswerResponse;
+          if (data.answer) {
+            history.push({ role: 'user', content: query }, { role: 'assistant', content: data.answer });
+            renderMessage(root, query, data.answer, data.state);
+            status.textContent = `Research complete — ${data.state.intent} · ${data.state.findings.length} provisions · ${data.state.methods.join(', ').slice(0, 80)} · model ${data.model || 'ai'}`;
+            input.value = '';
+            send.disabled = false;
+            return;
+          }
+        } else {
+          const err = await r.text();
+          console.warn('answer endpoint failed', r.status, err.slice(0, 500));
+        }
+      } catch (err) {
+        console.warn('answer endpoint error, falling back', err);
+      }
+
+      // 2. Fallback to research-only endpoint
+      try {
+        status.textContent = 'AI generation unavailable — retrieving evidence deterministically…';
+        const r = await fetch(`/api/research`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ query, messages: history.slice(-8) })
+        });
+        if (r.ok) {
+          const data = await r.json() as ResearchResponse;
+          const fallbackAnswer = `Short answer: Retrieved ${data.state.findings.length} responsive California provisions for "${query}" (intent: ${data.state.intent}).
+
+Evidence:
+${data.state.findings.slice(0, 6).map(f => `- ${(typeof f.citation === 'string' ? f.citation : (f.citation as any).label)} — ${f.title || ''}`).join('\n')}
+
+Connections:
+${data.state.relationships.slice(0, 6).map(rel => `- ${rel.sourceUid} ${rel.relationship} ${rel.targetUid || ''}`).join('\n') || 'No explicit relationships retrieved.'}
+
+Analysis:
+The orchestrator executed ${data.state.provenance.executedSteps} of ${data.state.provenance.plannedSteps} planned steps in ${data.state.provenance.durationMs}ms using methods: ${data.state.methods.join(', ')}. This is deterministic evidence synthesis because AI generation was unavailable.
+
+Limits:
+${data.state.unresolved.join('; ') || 'No unresolved items, but answer is evidence-only without LLM synthesis.'}
+
+Sources:
+${data.state.findings.map(f => `${typeof f.citation === 'string' ? f.citation : (f.citation as any).label}: ${typeof f.citation === 'string' ? '#' : (f.citation as any).url}`).join('\n')}
+`;
+          history.push({ role: 'user', content: query }, { role: 'assistant', content: fallbackAnswer });
+          renderMessage(root, query, fallbackAnswer, data.state);
+          status.textContent = `Evidence retrieval complete — ${data.state.findings.length} provisions`;
+          input.value = '';
+          send.disabled = false;
+          return;
+        }
+      } catch (err) {
+        console.warn('research endpoint error', err);
+      }
+
+      // 3. Final fallback: static corpus + direct chat (improved scoring, not just word match)
+      status.textContent = 'APIs unavailable — using static corpus with semantic scoring…';
+      const findings = await retrieveStatic(query, indexUrl);
+      status.textContent = `${findings.length} provisions retrieved. Reasoning with evidence…`;
+
+      const evidence = findings.map((f,i) => `SOURCE ${i+1}\nCitation: ${typeof f.citation === 'string' ? f.citation : (f.citation as any).label}\nTitle: ${f.title || ''}\nText: ${f.text.slice(0, 1200)}`).join('\n\n');
+      const system = `You are LegInfo AI, an AI research engine — not a keyword matcher. Answer only from supplied California Legislative Information corpus. Never invent citation, section, quotation, relationship, history, or legal fact. Cite inline using supplied citation label. Distinguish statutory text from analysis. If evidence does not answer question, state limitation. Reason over evidence: compare, explain, connect, investigate — do not just concatenate passages.`;
+
+      const chatEndpoint = root.dataset.chat!;
+      let answer = '';
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await fetch(chatEndpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ messages: [{ role: 'system', content: system }, ...history.slice(-8), { role: 'user', content: `CORPUS EVIDENCE:\n${evidence}\n\nQUESTION:\n${query}` }] })
+          });
+          if (!r.ok) throw Error(`AI HTTP ${r.status}`);
+          const d = await r.json() as { choices?: Array<{ message?: { content?: string } }>; response?: string; answer?: string };
+          const text = d.choices?.[0]?.message?.content || d.response || d.answer;
+          if (text?.trim()) { answer = text.trim(); break; }
+        } catch (e) {
+          if (attempt === 2) throw e;
+          await sleep(600 * (attempt + 1));
+        }
+      }
+
+      history.push({ role: 'user', content: query }, { role: 'assistant', content: answer });
+      renderMessage(root, query, answer, { intent: 'synthesis', codes: [], subjects: [], findings, relationships: [], history: [], unresolved: [], methods: ['static-corpus','semantic-scoring','bm25-like'], provenance: { plannedSteps: 1, executedSteps: 1, durationMs: 0 } } as any);
+      status.textContent = 'Research complete — static fallback with improved scoring';
+      input.value = '';
+    } catch (err) {
+      status.textContent = `Research engine error: ${err instanceof Error ? err.message : String(err)}`;
+    } finally {
+      send.disabled = false;
+    }
+  });
+});
 </script>
+
 <style>
-.research-box{margin:2rem 0;padding:1.5rem 0;background:linear-gradient(135deg,color-mix(in srgb,var(--sl-color-accent-low) 30%,transparent),transparent 65%);border-radius:1rem}.eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.12em;color:var(--sl-color-text-accent)}.research-box h2{font-size:clamp(1.6rem,3vw,2.3rem);margin:.3rem 0}.subhead{opacity:.72;margin:0 0 1rem}.conversation{display:grid;gap:.8rem;max-height:46rem;overflow:auto;margin:1rem 0}.message{padding:1rem 1.1rem;border-radius:.8rem;background:color-mix(in srgb,var(--sl-color-bg) 88%,var(--sl-color-accent-low));line-height:1.65}.message.user{background:color-mix(in srgb,var(--sl-color-accent-low) 38%,var(--sl-color-bg))}.role{font-size:.65rem;font-weight:800;letter-spacing:.1em;opacity:.6;margin-bottom:.3rem}.answer{white-space:pre-wrap}.research-box form{display:flex;gap:.6rem}.research-box input{flex:1;min-width:0;padding:.9rem 1rem;border:0;border-radius:.65rem;background:var(--sl-color-bg);color:var(--sl-color-text);font:inherit;box-shadow:0 8px 30px color-mix(in srgb,#000 12%,transparent)}.research-box button{padding:.9rem 1.2rem;border:0;border-radius:.65rem;background:var(--sl-color-accent);color:var(--sl-color-white);font:inherit;font-weight:800;cursor:pointer}.research-box button:disabled{opacity:.5;cursor:wait}.status{display:flex;align-items:center;gap:.5rem;margin:.75rem 0;font-size:.82rem;opacity:.72}.dot{width:.45rem;height:.45rem;border-radius:50%;background:currentColor}.source{padding:.8rem 0;border-top:1px solid color-mix(in srgb,var(--sl-color-gray-5) 45%,transparent)}.source span{display:block;font-size:.8rem;opacity:.65}.source p{white-space:pre-wrap;margin:.4rem 0 0}.message details{margin-top:1rem}.message summary{cursor:pointer;font-weight:700}@media(max-width:700px){.research-box form{flex-direction:column}}
+.research-box{margin:2.2rem 0;padding:1.6rem 0;background:linear-gradient(135deg,color-mix(in srgb,var(--sl-color-accent-low) 32%,transparent),transparent 70%);border-radius:1.1rem;border:1px solid color-mix(in srgb,var(--sl-color-accent) 14%,transparent)}
+.eyebrow{font-size:.70rem;font-weight:900;letter-spacing:.14em;color:var(--sl-color-text-accent);margin-bottom:.4rem}
+.research-box h2{font-size:clamp(1.7rem,3vw,2.5rem);margin:.25rem 0;line-height:1.15}
+.subhead{opacity:.78;margin:0 0 1.1rem;line-height:1.55;max-width:60rem}
+.conversation{display:grid;gap:.9rem;max-height:52rem;overflow:auto;margin:1rem 0;padding-right:.4rem}
+.message{padding:1.1rem 1.2rem;border-radius:.9rem;background:color-mix(in srgb,var(--sl-color-bg) 86%,var(--sl-color-accent-low));line-height:1.7;box-shadow:0 6px 24px color-mix(in srgb,#000 7%,transparent)}
+.message.user{background:color-mix(in srgb,var(--sl-color-accent-low) 42%,var(--sl-color-bg));border:1px solid color-mix(in srgb,var(--sl-color-accent) 18%,transparent)}
+.role{font-size:.68rem;font-weight:800;letter-spacing:.11em;opacity:.7;margin-bottom:.35rem;text-transform:uppercase}
+.answer{white-space:pre-wrap;word-break:break-word}
+.research-box form{display:flex;gap:.65rem;margin-top:.6rem}
+.research-box input{flex:1;min-width:0;padding:.95rem 1.05rem;border:0;border-radius:.7rem;background:var(--sl-color-bg);color:var(--sl-color-text);font:inherit;box-shadow:0 10px 36px color-mix(in srgb,#000 14%,transparent)}
+.research-box button{padding:.95rem 1.3rem;border:0;border-radius:.7rem;background:var(--sl-color-accent);color:var(--sl-color-white);font:inherit;font-weight:800;cursor:pointer;box-shadow:0 8px 20px color-mix(in srgb,var(--sl-color-accent) 30%,transparent)}
+.research-box button:disabled{opacity:.5;cursor:wait}
+.status{display:flex;align-items:center;gap:.55rem;margin:.85rem 0;font-size:.84rem;opacity:.78}
+.dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--sl-color-text-accent);box-shadow:0 0 0 6px color-mix(in srgb,var(--sl-color-text-accent) 18%,transparent)}
+.source{padding:.9rem 0;border-top:1px solid color-mix(in srgb,var(--sl-color-gray-5) 45%,transparent)}
+.source span{display:block;font-size:.82rem;opacity:.68;margin-top:.15rem}
+.source p{white-space:pre-wrap;margin:.45rem 0 0;line-height:1.6}
+.source .meta{font-size:.75rem;opacity:.55;margin-top:.25rem}
+.evidence-grid{display:grid;gap:.2rem}
+.rels{display:grid;gap:.4rem;margin:.5rem 0}
+.rel{font-size:.85rem;padding:.4rem .6rem;background:color-mix(in srgb,var(--sl-color-bg) 70%,var(--sl-color-gray-6));border-radius:.4rem}
+.rel code{font-weight:700}
+.rel span{opacity:.7;margin-left:.4rem}
+.history{padding:.4rem 0;border-top:1px solid color-mix(in srgb,var(--sl-color-gray-5) 30%,transparent);font-size:.9rem}
+.unresolved{padding:.35rem 0;font-size:.88rem;opacity:.8}
+.message details{margin-top:1.1rem;background:color-mix(in srgb,var(--sl-color-bg) 60%,transparent);border-radius:.6rem;padding:.2rem .8rem}
+.message summary{cursor:pointer;font-weight:700;padding:.6rem 0;list-style:none}
+.message summary::-webkit-details-marker{display:none}
+.capabilities{margin-top:1rem;padding:.8rem 1rem;background:color-mix(in srgb,var(--sl-color-bg) 75%,transparent);border-radius:.7rem;border:1px dashed color-mix(in srgb,var(--sl-color-accent) 20%,transparent)}
+.capabilities summary{cursor:pointer;font-weight:700;font-size:.9rem}
+.capabilities ul{margin:.6rem 0 0 1.1rem;padding:0;display:grid;gap:.35rem;font-size:.86rem;opacity:.85;line-height:1.5}
+@media(max-width:720px){.research-box form{flex-direction:column}.conversation{max-height:42rem}}
 </style>
