@@ -18,6 +18,11 @@ on:
         required: false
         default: true
         type: boolean
+      worker_url:
+        description: 'Worker URL for retrieval regression tests (optional)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -70,9 +75,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler deploy
-      - name: Verify Worker
-        if: ${{ inputs.deploy_worker }}
+      - name: Verify AI Search directly
+        if: ${{ inputs.upload_corpus }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler ai-search search "$AI_SEARCH_INSTANCE" --query 'California statutory section' --max-num-results 5 --reranking --json
+      - name: Run retrieval regressions
+        if: ${{ inputs.worker_url != '' }}
+        env:
+          LEGINFO_AI_URL: ${{ inputs.worker_url }}
+        run: node scripts/eval-ai-search.mjs
