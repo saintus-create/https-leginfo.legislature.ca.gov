@@ -4,12 +4,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      session:
-        description: 'California legislative session start year'
-        required: false
-        default: '2025'
-        type: string
 
 permissions:
   contents: read
@@ -18,17 +12,16 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: 22
-  LEGINFO_SESSION: ${{ inputs.session || '2025' }}
   SITE_BASE: /https-leginfo.legislature.ca.gov
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,25 +29,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Cache official bulk archive
-        uses: actions/cache@v4
-        with:
-          path: data/raw/pubinfo_${{ env.LEGINFO_SESSION }}.zip
-          key: ${{ runner.os }}-leginfo-pubinfo-${{ env.LEGINFO_SESSION }}-v1
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Build, import official bills, checksum, and verify corpus
-        run: bash scripts/build-site.sh
+      - name: Build Pages site and verify corpus
+        run: bash scripts/build-pages-site.sh
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
   deploy:
     environment:
       name: github-pages
@@ -63,6 +53,12 @@ jobs:
     timeout-minutes: 15
     needs: build
     steps:
+      - name: Checkout smoke-test script
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
         id: deployment
