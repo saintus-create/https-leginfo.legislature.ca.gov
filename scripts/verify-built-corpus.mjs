@@ -82,7 +82,8 @@ for (const [code, meta] of Object.entries(index.codes)) {
   if (!manifest.codes[code]) throw new Error(`Research index contains unknown code ${code}.`);
   for (const key of ['longestSentenceByWords', 'longestSentenceByChars']) {
     const section = meta[key]?.section;
-    if (section && !seenUids.has(`${code}:${section}`)) throw new Error(`${code}: ${key} citation does not resolve.`);
+    const uid = meta[key]?.uid || (section ? `${code}:${section}` : undefined);
+    if (uid && !seenUids.has(uid)) throw new Error(`${code}: ${key} citation does not resolve.`);
   }
 }
 

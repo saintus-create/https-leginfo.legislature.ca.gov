@@ -11,7 +11,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LAW = ROOT / "data" / "law"
 OUT = ROOT / "public" / "data" / "research-index.json"
-PART_BYTES = 10 * 1024 * 1024
+# Keep this in sync with build-site.sh's `split -C 10m`: GNU split treats
+# the lowercase `m` suffix as 1,000,000 bytes, not 1,048,576 (MiB).
+PART_BYTES = 10_000_000
 
 CODE_NAMES = {
     "BPC": "Business and Professions Code", "CIV": "Civil Code", "CCP": "Code of Civil Procedure",
@@ -66,14 +68,13 @@ def main() -> None:
         best_chars = None
         section_count = 0
         uncompressed_offset = 0
-        part_number = 0
-        next_boundary = PART_BYTES
         with gzip.open(path, "rt", encoding="utf-8") as fh:
             for line in fh:
                 line_bytes = len(line.encode("utf-8"))
-                if uncompressed_offset and uncompressed_offset + line_bytes > next_boundary:
-                    part_number += 1
-                    next_boundary = (part_number + 1) * PART_BYTES
+                # GNU split -C keeps a line that crosses a boundary in the
+                # current part; the next line begins the next part. Assign
+                # from the line's starting byte offset to mirror that rule.
+                part_number = uncompressed_offset // PART_BYTES
                 current_part = f"{code}.part-{part_number:03d}"
                 uncompressed_offset += line_bytes
                 try:
@@ -89,6 +90,7 @@ def main() -> None:
                 text = rec.get("text") or ""
                 for sent in sentences(text):
                     candidate = {
+                        "uid": uid,
                         "citation": rec.get("citation") or f"{code} § {section}",
                         "section": section,
                         "text": sent,
@@ -120,6 +122,23 @@ def main() -> None:
         token: [uid for uid, _count in sorted(items, key=lambda x: (-int(x[1]), str(x[0])))[:12]]
         for token, items in term_candidates.items()
     }
+    # GNU split's oversized-line behavior cannot be reconstructed reliably
+    # from source offsets. When deployed parts exist, use the actual files.
+    deployed = ROOT / "public" / "data" / "law"
+    parts = sorted(deployed.glob("*.part-*") if deployed.exists() else [])
+    if parts:
+        deployed_locations = {}
+        for part in parts:
+            with part.open("r", encoding="utf-8") as fh:
+                for line in fh:
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if rec.get("kind") == "section" and rec.get("uid"):
+                        deployed_locations[str(rec["uid"])] = part.name
+        if deployed_locations:
+            result["locations"] = deployed_locations
     OUT.write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"research-index: wrote {OUT} ({OUT.stat().st_size:,} bytes; {len(result['terms']):,} terms)")
 

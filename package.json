@@ -1,8 +1,24 @@
 {
-  "name":"california-legislative-information",
-  "private":true,
-  "type":"module",
-  "scripts":{"dev":"astro dev","build":"bash scripts/build-site.sh","deploy":"bun run build && wrangler deploy","preview":"astro preview","check":"astro check","test":"bun test","ai:setup":"bash scripts/setup-ai-search.sh","ai:upload":"bash scripts/upload-autorag-r2.sh"},
-  "dependencies":{"@astrojs/starlight":"^0.41.3","astro":"^7.0.2"},
-  "devDependencies":{"wrangler":"^4.34.0"}
+  "name": "california-legislative-information",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "bash scripts/build-site.sh",
+    "deploy": "bun run build && wrangler deploy",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "bun test",
+    "ai:setup": "bash scripts/setup-ai-search.sh",
+    "ai:upload": "bash scripts/upload-autorag-r2.sh"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/starlight": "^0.41.3",
+    "astro": "^7.0.2",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "wrangler": "^4.34.0"
+  }
 }
