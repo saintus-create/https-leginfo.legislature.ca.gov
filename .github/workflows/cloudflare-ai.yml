@@ -1,6 +1,8 @@
 name: Build and deploy AI corpus
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       session:
@@ -49,38 +51,33 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Build corpus, graph, and site
+      - name: Build corpus
         run: bash scripts/build-site.sh
       - name: Authenticate Wrangler
-        if: ${{ inputs.upload_corpus || inputs.deploy_worker }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler whoami
       - name: Upload Markdown corpus to R2
-        if: ${{ inputs.upload_corpus }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bash scripts/upload-autorag-r2.sh autorag
       - name: Provision/check AI Search
-        if: ${{ inputs.upload_corpus }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bash scripts/setup-ai-search.sh
       - name: Deploy Worker
-        if: ${{ inputs.deploy_worker }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler deploy
       - name: Verify AI Search directly
-        if: ${{ inputs.upload_corpus }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler ai-search search "$AI_SEARCH_INSTANCE" --query 'California statutory section' --max-num-results 5 --reranking --json
+        run: npx wrangler ai-search search "$AI_SEARCH_INSTANCE" --query 'California Family Code section 3044' --max-num-results 5 --reranking --json
       - name: Run retrieval regressions
         if: ${{ inputs.worker_url != '' }}
         env:
