@@ -15,7 +15,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,13 +23,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
       - name: Validate compressed JSONL corpus
         run: node scripts/validate-corpus.mjs
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        run: bun install --no-progress
+        run: npm install --no-audit --no-fund
       - name: Test research orchestrator
-        run: bun test tests/orchestrator.test.ts
-      - name: Build and verify deployed corpus artifact
+        run: npx bun test tests/orchestrator.test.ts
+      - name: Build and verify full corpus artifact
         run: bash scripts/build-site.sh
