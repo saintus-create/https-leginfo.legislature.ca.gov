@@ -4,18 +4,17 @@ set -euo pipefail
 SESSION="${LEGINFO_SESSION:-2025}"
 SITE_BASE="${SITE_BASE:-/https-leginfo.legislature.ca.gov}"
 
-rm -rf public/data public/ai-corpus public/bills
+rm -rf public/data public/ai-corpus public/bills autorag
 mkdir -p public/data/law public/ai-corpus
 
-# The law snapshot is committed and remains the canonical statutory source.
+# Build the canonical structured research database first.
 python3 scripts/build-research-index.py
-
-# Build the queryable database, then import the official bill archive for the
-# current legislative session. The official 2025 archive is ~1.2 GB, so it is
-# deliberately downloaded in CI rather than committed to Git.
 python3 -m leginfo build-db
 python3 -m leginfo import-bills --session "$SESSION"
 SITE_BASE="$SITE_BASE" python3 scripts/export-bills.py
+
+# Export one source-grounded Markdown document per statutory section for AI Search.
+python3 -m leginfo export-markdown --output autorag
 
 for file in data/law/*.jsonl.gz; do
   code="$(basename "$file" .jsonl.gz)"
@@ -26,6 +25,7 @@ for file in data/law/*.jsonl.gz; do
 done
 
 node scripts/build-corpus-manifest.mjs
+python3 scripts/build-ai-graph.py
 node scripts/verify-built-corpus.mjs
 
 {
