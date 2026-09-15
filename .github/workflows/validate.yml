@@ -24,11 +24,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
       - name: Validate compressed JSONL corpus
         run: node scripts/validate-corpus.mjs
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Test research orchestrator
-        run: npx bun test tests/orchestrator.test.ts
+        run: bun test tests/orchestrator.test.ts
       - name: Build and verify full corpus artifact
         run: bash scripts/build-site.sh
