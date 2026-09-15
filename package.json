@@ -2,6 +2,7 @@
   "name":"california-legislative-information",
   "private":true,
   "type":"module",
-  "scripts":{"dev":"astro dev","build":"bash scripts/build-site.sh","deploy":"bun run build && wrangler deploy","preview":"astro preview","check":"astro check","test":"bun test"},
-  "dependencies":{"@astrojs/starlight":"^0.41.3","astro":"^7.0.2"}
+  "scripts":{"dev":"astro dev","build":"bash scripts/build-site.sh","deploy":"bun run build && wrangler deploy","preview":"astro preview","check":"astro check","test":"bun test","ai:setup":"bash scripts/setup-ai-search.sh","ai:upload":"bash scripts/upload-autorag-r2.sh"},
+  "dependencies":{"@astrojs/starlight":"^0.41.3","astro":"^7.0.2"},
+  "devDependencies":{"wrangler":"^4.34.0"}
 }
