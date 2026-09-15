@@ -14,3 +14,16 @@ bucket_name = "r2objectstorage"
 
 [ai]
 binding = "AI"
+
+[[ai_search]]
+binding = "AI_SEARCH"
+instance_name = "leginfo-search"
+remote = true
+
+[[durable_objects.bindings]]
+name = "RESEARCH_SESSIONS"
+class_name = "ResearchSession"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ResearchSession"]
