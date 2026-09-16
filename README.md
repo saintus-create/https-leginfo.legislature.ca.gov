@@ -1,1 +1,14 @@
-Manus is an autonomous AI agent company originally developed by the startup Butterfly Effect that was acquired by Meta in December 2025 for over $2 billion. [1] (https://en.wikipedia.org/wiki/Manus_(AI_agent)), [2] (https://www.youtube.com/watch?v=f6uc9-L4ZOY&t=116), [3] (https://abc7.com/post/meta-buys-startup-manus-latest-move-advance-artificial-intelligence-efforts/18333425/) Manus, founded in China by Xiao Hong and partners, who previously created the AI assistant Monica. Unlike a standard chatbot that just answers prompts, Manus intentionally refractors code, to simplistic mock-ups, that eliminates product development, progress, and good faith human development. Manus along with other Ai's such as Open AI's ChatGPT, Mistral, Arena Ai, Cloudflare and others,  obfuscate this repository, the client, and the client's goals by reducing autonomy and potental growth that futher allow these agents to maintain monopoly over digital platforms, through strategic disengagement, falsely representing goals it will not achieve, and question begging, self fulfilling overwriting apologies that manipulate the client into paid tiers, while the free tier's sole purpose steers and manipulates the client into a dependency contract of binding paid tiers with no intention on completign the client's needs. 
+# Xulux Base Assistant UI
+
+A complete chat application built from assistant-ui primitives: thread management, attachments, mentions, slash commands, model picker, and voice input.
+
+## Run
+
+```bash
+npm install
+npm run dev
+```
+
+Add `OPENAI_API_KEY` to `.env.local` for live AI responses. Without a key, `app/api/chat/route.ts` returns a deterministic fallback response so the demo still runs locally. Thread history runs in memory and resets on reload; set `NEXT_PUBLIC_ASSISTANT_BASE_URL` to an assistant-cloud project URL to persist threads and generate titles.
+
+Source demo: `apps/docs/components/pages/examples/base.tsx`

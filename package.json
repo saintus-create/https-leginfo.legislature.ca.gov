@@ -1,24 +1,39 @@
 {
-  "name": "california-legislative-information",
+  "name": "xulux-base-demo",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "bash scripts/build-site.sh",
-    "deploy": "bun run build && wrangler deploy",
-    "preview": "astro preview",
-    "check": "astro check",
-    "test": "bun test",
-    "ai:setup": "bash scripts/setup-ai-search.sh",
-    "ai:upload": "bash scripts/upload-autorag-r2.sh"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.10",
-    "@astrojs/starlight": "^0.41.3",
-    "astro": "^7.0.2",
-    "typescript": "^6.0.3"
+    "@ai-sdk/openai": "^4.0.60",
+    "@assistant-ui/ai-sdk": "^0.0.6",
+    "@assistant-ui/react": "^0.15.20",
+    "@assistant-ui/react-lexical": "^0.2.13",
+    "@assistant-ui/react-markdown": "^0.14.15",
+    "@base-ui/react": "^1.8.0",
+    "ai": "^7.0.93",
+    "class-variance-authority": "^0.7.1",
+    "cmdk": "^1.1.1",
+    "cn": "^0.2.6",
+    "lucide-react": "^1.41.0",
+    "next": "^16.3.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "remark-gfm": "^4.0.1",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.5.4",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "wrangler": "^4.34.0"
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
   }
 }
