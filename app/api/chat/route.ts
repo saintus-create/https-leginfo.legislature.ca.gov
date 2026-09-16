@@ -1,41 +1,24 @@
 import { openai } from "@ai-sdk/openai";
+import { frontendTools } from "@assistant-ui/react-ai-sdk";
 import {
+  JSONSchema7,
   streamText,
   convertToModelMessages,
-  stepCountIs,
-  tool,
-  zodSchema,
+  type UIMessage,
 } from "ai";
-import type { UIMessage } from "ai";
-import { z } from "zod";
-import {
-  AISDKToolkit,
-  type AISDKToolkitToolsOptions,
-} from "@assistant-ui/ai-sdk";
-import {
-  renderGuiToolDescription,
-  renderGuiToolInputSchema,
-} from "../../../lib/render-gui-tool";
-import toolkit from "../../toolkit";
-
-export const maxDuration = 30;
-
-const aiToolkit = new AISDKToolkit({ toolkit });
 
 // Your California Legislative AI backend URL
 const LEGISLATIVE_AI_URL = "https://https-leginfo-legislature-ca-gov.ca-app.workers.dev";
-
-type FrontendToolDefs = NonNullable<AISDKToolkitToolsOptions["frontend"]>;
 
 export async function POST(req: Request) {
   const {
     messages,
     system,
-    tools: clientTools,
+    tools,
   }: {
     messages: UIMessage[];
     system?: string;
-    tools?: FrontendToolDefs;
+    tools?: Record<string, { description?: string; parameters: JSONSchema7 }>;
   } = await req.json();
 
   // Get the user's last message text
@@ -73,81 +56,49 @@ export async function POST(req: Request) {
           ? backendData.message
           : JSON.stringify(backendData);
 
-    // Return the response through the UIMessageStream
+    // Return the response through the stream
     const result = streamText({
-      model: openai("gpt-5.6-luna"),
+      model: openai.responses("gpt-5-nano"),
       messages: await convertToModelMessages([
         ...messages.slice(0, -1),
         { role: "assistant", content: responseText }
       ]),
-      stopWhen: stepCountIs(1),
-      ...(system ? { system } : {}),
+      system,
       tools: {
-        render_gui: tool({
-          description: renderGuiToolDescription,
-          inputSchema: zodSchema(renderGuiToolInputSchema),
-          execute: async (input) => ({
-            spec: input.spec,
-          }),
-        }),
-        generate_chart: tool({
-          description:
-            "Generate a chart. Return structured data for rendering a bar, line, or pie chart.",
-          inputSchema: zodSchema(
-            z.object({
-              title: z.string().describe("Chart title"),
-              type: z
-                .enum(["bar", "line", "pie"])
-                .describe("Chart type to render"),
-              data: z
-                .array(z.record(z.string(), z.union([z.string(), z.number()])))
-                .describe(
-                  "Array of data objects, e.g. [{month: 'Jan', revenue: 100}]",
-                ),
-              xKey: z
-                .string()
-                .describe("Key in each data object to use for the x-axis/labels"),
-              dataKeys: z
-                .array(z.string())
-                .describe("Keys in each data object to chart as series/values"),
-            }),
-          ),
-          execute: async () => ({ success: true }),
-        }),
-        show_location: tool({
-          description:
-            "Show a location on a map.",
-          inputSchema: zodSchema(
-            z.object({
-              name: z.string().describe("Name of the place"),
-              address: z.string().optional().describe("Street address"),
-              lat: z.number().describe("Latitude"),
-              lng: z.number().describe("Longitude"),
-            }),
-          ),
-          execute: async () => ({ success: true }),
-        }),
+        ...frontendTools(tools ?? {}),
       },
-    } as Parameters<typeof streamText>[0]);
+      providerOptions: {
+        openai: {
+          reasoningEffort: "low",
+          reasoningSummary: "auto",
+        },
+      },
+    });
 
-    return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      sendReasoning: true,
+    });
 
   } catch (error) {
     console.error("Error calling Legislative AI:", error);
     
-    // Fallback: return a simple assistant response
-    const fallbackText = `California Legislative AI: ${String(error)}`;
+    // Fallback response
+    const fallbackText = `California Legislative AI response: ${String(error)}`;
     
     const result = streamText({
-      model: openai("gpt-5.6-luna"),
+      model: openai.responses("gpt-5-nano"),
       messages: await convertToModelMessages([
         ...messages.slice(0, -1),
         { role: "assistant", content: fallbackText }
       ]),
-      stopWhen: stepCountIs(1),
-      ...(system ? { system } : {}),
+      system,
+      tools: {
+        ...frontendTools(tools ?? {}),
+      },
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      sendReasoning: true,
+    });
   }
 }
