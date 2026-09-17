@@ -1,5 +1,20 @@
 # Data dictionary
 
+Two datasets live in `data/`:
+
+* `data/law/` — California statutory codes (29 codes + the Constitution), from LegInfo.
+* `data/selfhelp/` — the California Courts **Self-Help Guide** (plain-language
+  procedural guidance for self-represented litigants), from selfhelp.courts.ca.gov.
+
+Build the databases from the snapshots (45 s for law, ~1 s for selfhelp):
+
+```bash
+make db           # → data/leginfo.sqlite  (~390 MB)
+make selfhelp-db  # → data/selfhelp/selfhelp.sqlite  (~250 KB)
+```
+
+See `docs/SOURCES.md` and `docs/SELFHELP-SOURCES.md` for upstream provenance.
+
 Everything lives in `data/leginfo.sqlite` (SQLite, ~390 MB, rebuildable from
 `data/law/` in ~45 s). The committed snapshot in `data/law/` is the canonical
 copy; the database is derived.
@@ -137,4 +152,51 @@ bad = [c["abbr"] for c in m["codes"]
                          pathlib.Path("data/law", c["file"]).read_bytes()).hexdigest() != c["sha256"]]
 print("mismatched:", bad or "none")
 EOF
+```
+
+---
+
+## Self-Help Guide (`data/selfhelp/`)
+
+`data/selfhelp/pages.jsonl.gz` is a gzip-compressed JSON-Lines snapshot of the
+California Courts Self-Help Guide. See `docs/SELFHELP-SOURCES.md` for the full
+page-record schema. The on-disk snapshot is canonical; `selfhelp.sqlite` is
+derived.
+
+### Tables in `selfhelp.sqlite`
+
+| table | rows | description |
+|---|---|---|
+| `pages` | one per page | `slug` (PK), `url`, `path`, `title`, `text`, `char_count`, `fetched_at`, `lang`, `sha256`, `status` |
+| `page_forms` | form reference | `(slug, form)` — Judicial Council form numbers cited on each page (e.g. `FL-300`, `DV-100`, `FW-001`) |
+| `page_links` | link | `(slug, target_url, label, kind)` — internal and external links |
+| `page_terms` | glossary | `(slug, term)` — terms the site defines inline with boldface glossary markup |
+| `pages_fts` | FTS5 index | full-text search over `title`, `text`, and `forms` (unicode61 tokenizer) |
+
+### Query recipes
+
+```bash
+# Search
+make search-selfhelp Q="fee waiver"
+python -m selfhelp page /divorce
+```
+
+```python
+import sqlite3
+con = sqlite3.connect("data/selfhelp/selfhelp.sqlite")
+
+# Full-text search
+for row in con.execute("""
+    SELECT p.slug, p.title, snippet(pages_fts, 2, '[', ']', '…', 8)
+    FROM pages_fts JOIN pages p ON p.rowid = pages_fts.rowid
+    WHERE pages_fts MATCH ? ORDER BY rank LIMIT 5
+""", ("eviction",)):
+    print(row)
+
+# Pages that mention a given form
+for row in con.execute("""
+    SELECT p.path, p.title FROM pages p
+    JOIN page_forms f ON f.slug = p.slug WHERE f.form = ?
+""", ("FL-300",)):
+    print(row)
 ```

@@ -16,6 +16,13 @@ data/leginfo.sqlite
 data/leginfo.sqlite-wal
 data/leginfo.sqlite-shm
 
+# Self-help sqlite database is rebuildable from pages.jsonl.gz.
+data/selfhelp/selfhelp.sqlite
+data/selfhelp/selfhelp.sqlite-wal
+data/selfhelp/selfhelp.sqlite-shm
+# Raw page cache is environment-specific (keep the seed, but ignore ad-hoc caches).
+# data/selfhelp/cache/_index.jsonl is committed.
+
 # Generated crawlable site: rebuild with `make html`.
 dist/
 autorag/

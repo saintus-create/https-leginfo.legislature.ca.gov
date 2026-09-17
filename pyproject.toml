@@ -13,9 +13,11 @@ license = { text = "Public domain data (Cal. Gov. Code § 10248.5); MIT for this
 # The pipeline itself is stdlib-only on purpose. Dependencies below are for tests.
 [project.optional-dependencies]
 dev = ["pytest>=7.4"]
+crawl = ["markdownify>=0.11"]
 
 [project.scripts]
 leginfo = "leginfo.cli:main"
+selfhelp = "selfhelp.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
