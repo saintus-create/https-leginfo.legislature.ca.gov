@@ -4,7 +4,7 @@ import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import {
   useChatRuntime,
   AssistantChatTransport,
-} from "@assistant-ui/react-ai-sdk";
+} from "@assistant-ui/ai-sdk";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { Thread } from "@/components/assistant-ui/thread";
 import {
@@ -14,7 +14,7 @@ import {
   ThreadPrimitive,
 } from "@assistant-ui/react";
 import { cn } from "@/lib/utils";
-import { MarkdownText } from "@/components/assistant-ui/elements/markdown-text";
+import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 
 // Gemini Clone - Simplified for standalone use
 export const Assistant = () => {
