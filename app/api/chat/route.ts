@@ -8,7 +8,7 @@ import {
 } from "ai";
 
 // Your California Legislative AI backend URL
-const LEGISLATIVE_AI_URL = "https://https-leginfo-legislature-ca-gov.ca-app.workers.dev";
+const LEGISLATIVE_AI_URL = process.env.LEGISLATIVE_AI_BACKEND_URL || "https://leginfo-legislature-ca-gov.ca-app.workers.dev";
 
 export async function POST(req: Request) {
   const {
